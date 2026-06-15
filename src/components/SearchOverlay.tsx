@@ -18,6 +18,7 @@ export function SearchOverlay({ isOpen, onClose }: { isOpen: boolean, onClose: (
           <input 
             autoFocus
             type="text" 
+            aria-label="Search notes"
             placeholder="Search across your notes conceptually..." 
             className="w-full bg-transparent text-2xl font-semibold text-gray-100 outline-none placeholder-gray-500"
             value={query}

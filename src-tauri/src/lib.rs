@@ -98,8 +98,29 @@ async fn vector_search(
 
 #[tauri::command]
 async fn generate_gemini_description(_prompt: String) -> Result<String, String> {
-    // Note: Secure backend implementation would hit the Gemini API here
-    Err("Not yet implemented on backend".to_string())
+    dotenvy::dotenv().ok();
+    let api_key = std::env::var("GEMINI_API_KEY").map_err(|_| "GEMINI_API_KEY not set".to_string())?;
+    
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", api_key);
+    
+    let client = reqwest::Client::new();
+    let response = client.post(&url)
+        .json(&serde_json::json!({
+            "contents": [{
+                "parts": [{"text": _prompt}]
+            }]
+        }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+        
+    let res_json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    
+    if let Some(text) = res_json["candidates"][0]["content"]["parts"][0]["text"].as_str() {
+        Ok(text.to_string())
+    } else {
+        Err("Failed to parse Gemini response".to_string())
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
