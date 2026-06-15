@@ -1,7 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --color-theme-sidebar: #252526;
+  --color-theme-bg: #1e1e1e;
+  --color-theme-border: #333333;
+  --color-theme-accent: #d16a6a;
+  --color-theme-accentHover: #c05b5b;
+  --color-theme-input: #3c3c3c;
+}
+
 @layer base {
   body {
-    @apply bg-gray-900 text-gray-100 font-sans antialiased;
+    @apply bg-theme-bg text-gray-100 font-sans antialiased;
   }
 }

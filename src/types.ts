@@ -4,4 +4,24 @@ export interface Note {
   content: string;
   created_at: string;
   updated_at: string;
+  tags?: string[];
+}
+
+export interface GraphNode {
+  id: string;
+  name: string;
+  group: string;
+  val: number;
+  x?: number;
+  y?: number;
+}
+
+export interface GraphLink {
+  source: string;
+  target: string;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
 }

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Sidebar } from './components/Sidebar';
 import { EditorPane } from './components/EditorPane';
+import { GraphView } from './components/GraphView';
+import { SettingsView } from './components/SettingsView';
+import { OnboardingModal } from './components/OnboardingModal';
 import { Note } from './types';
 import { SearchOverlay } from './components/SearchOverlay';
 import './App.css';
@@ -10,19 +13,37 @@ function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'editor' | 'graph' | 'settings'>('editor');
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     loadNotes();
+    checkOnboarding();
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setIsSearchOpen(true);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        setViewMode(prev => prev === 'editor' ? 'graph' : 'editor');
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const checkOnboarding = async () => {
+    try {
+      const onboarded = await invoke<string | null>('get_setting', { key: 'has_onboarded' });
+      if (!onboarded) {
+        setShowOnboarding(true);
+      }
+    } catch (e) {
+      console.error('Failed to check onboarding:', e);
+    }
+  };
 
   const loadNotes = async () => {
     try {
@@ -33,8 +54,19 @@ function App() {
     }
   };
 
+  const generateId = () => {
+    if (crypto && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback for non-secure contexts (e.g. testing over HTTP IP)
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const handleCreateNote = async () => {
-    const newId = crypto.randomUUID();
+    const newId = generateId();
     try {
       await invoke('save_note', {
         id: newId,
@@ -43,6 +75,7 @@ function App() {
       });
       await loadNotes();
       setActiveNoteId(newId);
+      setViewMode('editor');
     } catch (e) {
       console.error('Failed to create note:', e);
     }
@@ -72,19 +105,41 @@ function App() {
   const activeNote = notes.find(n => n.id === activeNoteId) || null;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-900">
+    <div className="flex h-screen w-screen overflow-hidden bg-theme-bg">
       <Sidebar 
         notes={notes} 
         activeNoteId={activeNoteId} 
-        onSelectNote={setActiveNoteId} 
+        onSelectNote={(id) => {
+          if (id === 'settings') {
+            setViewMode('settings');
+            setActiveNoteId('settings');
+          } else {
+            setActiveNoteId(id);
+            setViewMode('editor');
+          }
+        }} 
         onCreateNote={handleCreateNote} 
       />
-      <EditorPane 
-        note={activeNote} 
-        onUpdateNote={handleUpdateNote} 
-        onDeleteNote={handleDeleteNote}
-      />
+      
+      {viewMode === 'settings' ? (
+        <SettingsView />
+      ) : viewMode === 'editor' ? (
+        <EditorPane 
+          note={activeNote} 
+          onUpdateNote={handleUpdateNote} 
+          onDeleteNote={handleDeleteNote}
+        />
+      ) : (
+        <GraphView 
+          onSelectNote={(id) => {
+            setActiveNoteId(id);
+            setViewMode('editor');
+          }}
+        />
+      )}
+      
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 }
