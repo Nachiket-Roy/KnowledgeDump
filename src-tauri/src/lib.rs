@@ -82,18 +82,18 @@ async fn delete_note(id: String, pool: State<'_, SqlitePool>) -> Result<(), Stri
 
 #[tauri::command]
 async fn upsert_vectors(
-    _vectors: Vec<vectordb::ChunkVector>,
-    _conn: State<'_, LanceDbConnection>,
+    vectors: Vec<vectordb::ChunkVector>,
+    conn: State<'_, LanceDbConnection>,
 ) -> Result<(), String> {
-    Err("Not yet implemented".to_string())
+    vectordb::upsert_vectors_impl(&*conn, vectors).await
 }
 
 #[tauri::command]
 async fn vector_search(
-    _query_vector: Vec<f32>,
-    _conn: State<'_, LanceDbConnection>,
+    query_vector: Vec<f32>,
+    conn: State<'_, LanceDbConnection>,
 ) -> Result<Vec<vectordb::SearchResult>, String> {
-    Err("Not yet implemented".to_string())
+    vectordb::vector_search_impl(&*conn, query_vector).await
 }
 
 #[tauri::command]
