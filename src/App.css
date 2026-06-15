@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-theme-sidebar: #252526;
-  --color-theme-bg: #1e1e1e;
+  --color-theme-sidebar: #1c1c1c;
+  --color-theme-bg: #272727;
   --color-theme-border: #333333;
-  --color-theme-accent: #d16a6a;
-  --color-theme-accentHover: #c05b5b;
-  --color-theme-input: #3c3c3c;
+  --color-theme-accent: #60cdff;
+  --color-theme-accentHover: #3a8fb7;
+  --color-theme-input: #333333;
 }
 
 @layer base {

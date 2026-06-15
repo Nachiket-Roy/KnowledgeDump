@@ -1,54 +1,54 @@
-#name: CI/CD Pipeline
-#
-#on:
-#  push:
-#    branches: [ "master", "main" ]
-#  pull_request:
-#    branches: [ "master", "main" ]
-#
-#permissions:
-#  contents: read
-#
-#jobs:
-#  test-and-lint:
-#    name: Lint and Test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-#        with:
-#          persist-credentials: false
-#      - name: Setup Node.js
-#        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
-#        with:
-#          node-version: 20
-#          cache: 'npm'
-#      - name: Install Dependencies
-#        run: npm ci || npm install
-#      - name: Run Vitest
-#        run: npx vitest run
-#      - name: Install Playwright Browsers
-#        run: npx playwright install --with-deps
-#      - name: Run Playwright Tests
-#        run: npx playwright test
-#      
-#      - name: Setup Rust
-#        uses: dtolnay/rust-toolchain@a54c7afa936fefeb4456b2dd8068152669aa8203
-#        with:
-#          toolchain: stable
-#      - name: Cache Cargo
-#        uses: Swatinem/rust-cache@54e2af0a8339c0435fa1de94002eab349a2f15ef
-#        with:
-#          workspaces: ./src-tauri
-#      - name: Install Ubuntu dependencies
-#        run: |
-#          sudo apt-get update
-#          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler
-#      - name: Cargo Check
-#        run: cargo check
-#        working-directory: ./src-tauri
-#      - name: Cargo Test
-#        run: cargo test
-#        working-directory: ./src-tauri
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-lint:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci || npm install
+      - name: Run Vitest
+        run: npx vitest run
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright Tests
+        run: npx playwright test
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@a54c7afa936fefeb4456b2dd8068152669aa8203
+        with:
+          toolchain: stable
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@54e2af0a8339c0435fa1de94002eab349a2f15ef
+        with:
+          workspaces: ./src-tauri
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler
+      - name: Cargo Check
+        run: cargo check
+        working-directory: ./src-tauri
+      - name: Cargo Test
+        run: cargo test
+        working-directory: ./src-tauri
 #
 #  build-tauri:
 #    name: Build Tauri Binaries

@@ -3,6 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 
 export function SettingsView() {
   const [apiKey, setApiKey] = useState('');
+  const [showLineNumbers, setShowLineNumbers] = useState(true);
+  const [autoTitleEnabled, setAutoTitleEnabled] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -12,9 +14,13 @@ export function SettingsView() {
   const loadSettings = async () => {
     try {
       const key = await invoke<string | null>('get_setting', { key: 'gemini_api_key' });
-      if (key) {
-        setApiKey(key);
-      }
+      if (key) setApiKey(key);
+      
+      const lineNums = await invoke<string | null>('get_setting', { key: 'show_line_numbers' });
+      if (lineNums) setShowLineNumbers(lineNums === 'true');
+      
+      const autoTitle = await invoke<string | null>('get_setting', { key: 'auto_title_enabled' });
+      if (autoTitle) setAutoTitleEnabled(autoTitle === 'true');
     } catch (e) {
       console.error('Failed to load settings:', e);
     }
@@ -23,6 +29,8 @@ export function SettingsView() {
   const handleSave = async () => {
     try {
       await invoke('set_setting', { key: 'gemini_api_key', value: apiKey });
+      await invoke('set_setting', { key: 'show_line_numbers', value: showLineNumbers.toString() });
+      await invoke('set_setting', { key: 'auto_title_enabled', value: autoTitleEnabled.toString() });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
@@ -54,21 +62,48 @@ export function SettingsView() {
               If left blank, the app will attempt to fallback to a local Ollama instance running on port 11434.
             </p>
           </div>
-          
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-theme-accent/80 hover:bg-theme-accent text-white font-medium rounded transition-colors"
-          >
-            {saved ? 'Saved!' : 'Save Settings'}
-          </button>
-        </div>
 
-        <div className="bg-theme-sidebar rounded-lg border border-theme-border p-6 shadow-xl opacity-60">
-          <h2 className="text-xl font-semibold mb-4 text-gray-400">Appearance (Coming Soon)</h2>
-          <div className="text-sm text-gray-500">
-            Theme selection and font size controls will be added in a future update.
+          <div className="mb-4 pt-4 border-t border-theme-border flex items-center justify-between">
+            <div>
+              <label className="block text-sm font-medium text-gray-200">
+                Auto-Title AI
+              </label>
+              <p className="text-xs text-gray-500">
+                Automatically generate a 2-4 word title for "New Note"s based on their content.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={autoTitleEnabled} onChange={() => setAutoTitleEnabled(!autoTitleEnabled)} />
+              <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme-accent"></div>
+            </label>
           </div>
         </div>
+
+        <div className="bg-theme-sidebar rounded-lg border border-theme-border p-6 mb-6 shadow-xl">
+          <h2 className="text-xl font-semibold mb-4 text-theme-accent">Editor Settings</h2>
+          
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <label className="block text-sm font-medium text-gray-200">
+                Show Line Numbers
+              </label>
+              <p className="text-xs text-gray-500">
+                Display line numbers in the left gutter of the markdown editor.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={showLineNumbers} onChange={() => setShowLineNumbers(!showLineNumbers)} />
+              <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme-accent"></div>
+            </label>
+          </div>
+        </div>
+        
+        <button
+          onClick={handleSave}
+          className="px-6 py-2.5 bg-theme-accent hover:bg-theme-accentHover text-white font-medium rounded shadow-lg transition-colors w-full"
+        >
+          {saved ? 'Settings Saved!' : 'Save All Settings'}
+        </button>
       </div>
     </div>
   );
