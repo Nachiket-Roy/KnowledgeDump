@@ -135,7 +135,7 @@ async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) ->
 }
 
 #[tauri::command]
-async fn generate_gemini_description(prompt: String, pool: State<'_, SqlitePool>) -> Result<String, String> {
+async fn generate_gemini_description(prompt: String, _pool: State<'_, SqlitePool>) -> Result<String, String> {
     let api_key = match keyring::Entry::new("KnowledgeDump", "gemini_api_key")
         .and_then(|e| e.get_password()) 
     {
