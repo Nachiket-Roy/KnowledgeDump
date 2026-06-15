@@ -1,50 +1,79 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { Sidebar } from './components/Sidebar';
+import { EditorPane } from './components/EditorPane';
+import { Note } from './types';
+import './App.css';
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  useEffect(() => {
+    loadNotes();
+  }, []);
+
+  const loadNotes = async () => {
+    try {
+      const fetchedNotes = await invoke<Note[]>('list_notes');
+      setNotes(fetchedNotes);
+    } catch (e) {
+      console.error('Failed to load notes:', e);
+    }
+  };
+
+  const handleCreateNote = async () => {
+    const newId = crypto.randomUUID();
+    try {
+      await invoke('save_note', {
+        id: newId,
+        title: 'New Note',
+        content: ''
+      });
+      await loadNotes();
+      setActiveNoteId(newId);
+    } catch (e) {
+      console.error('Failed to create note:', e);
+    }
+  };
+
+  const handleUpdateNote = async (id: string, title: string, content: string) => {
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, title, content } : n));
+    try {
+      await invoke('save_note', { id, title, content });
+    } catch (e) {
+      console.error('Failed to save note:', e);
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await invoke('delete_note', { id });
+      if (activeNoteId === id) {
+        setActiveNoteId(null);
+      }
+      await loadNotes();
+    } catch (e) {
+      console.error('Failed to delete note:', e);
+    }
+  };
+
+  const activeNote = notes.find(n => n.id === activeNoteId) || null;
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <div className="flex h-screen w-screen overflow-hidden bg-gray-900">
+      <Sidebar 
+        notes={notes} 
+        activeNoteId={activeNoteId} 
+        onSelectNote={setActiveNoteId} 
+        onCreateNote={handleCreateNote} 
+      />
+      <EditorPane 
+        note={activeNote} 
+        onUpdateNote={handleUpdateNote} 
+        onDeleteNote={handleDeleteNote}
+      />
+    </div>
   );
 }
 
