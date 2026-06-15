@@ -28,6 +28,13 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
   const [showLineNumbers, setShowLineNumbers] = useState(true);
   const [autoTitleEnabled, setAutoTitleEnabled] = useState(false);
   const [showExcalidraw, setShowExcalidraw] = useState(false);
+  const [excalidrawInitialData, setExcalidrawInitialData] = useState<any>(null);
+  const contentRef = React.useRef(content);
+  const saveTimerRef = React.useRef<any>(null);
+  
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   useEffect(() => {
     let isMounted = true;
@@ -42,6 +49,21 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       } catch(e) {}
     };
     fetchSettings();
+
+    const fetchDrawing = async () => {
+      if (!note) return;
+      try {
+        const data = await invoke<string | null>('get_drawing', { noteId: note.id });
+        if (data && isMounted) {
+          setExcalidrawInitialData(JSON.parse(data));
+        } else {
+          setExcalidrawInitialData(null);
+        }
+      } catch (e) {
+        console.error('Failed to load drawing', e);
+      }
+    };
+    fetchDrawing();
 
     if (note) {
       setTitle(note.title);
@@ -95,10 +117,11 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     const timer = setTimeout(async () => {
       setIsTitling(true);
       try {
-        const newTitle = await generateTitle(content);
+        const currentContent = contentRef.current;
+        const newTitle = await generateTitle(currentContent);
         if (newTitle && newTitle !== 'New Note') {
           setTitle(newTitle);
-          onUpdateNote(note.id, newTitle, content);
+          onUpdateNote(note.id, newTitle, currentContent);
         }
       } catch (e) {
         console.error('Auto-title failed:', e);
@@ -159,15 +182,35 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     view.focus();
   };
 
+  const handleExcalidrawChange = (elements: readonly any[], appState: any, files: any) => {
+    if (!note) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const data = JSON.stringify({ elements, appState, files });
+        await invoke('save_drawing', { noteId: note.id, data });
+      } catch (e) {
+        console.error('Failed to save drawing', e);
+      }
+    }, 1000);
+  };
+
+  const escapeHtml = (unsafe: string) => unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
   const handleExportDoc = () => {
     const element = document.createElement('a');
     // Using simple HTML-in-DOC format which Word reads perfectly
     const htmlContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><title>${title}</title></head>
+      <head><title>${escapeHtml(title)}</title></head>
       <body>
-        <h1>${title}</h1>
-        <pre style="white-space: pre-wrap; font-family: sans-serif;">${content}</pre>
+        <h1>${escapeHtml(title)}</h1>
+        <pre style="white-space: pre-wrap; font-family: sans-serif;">${escapeHtml(content)}</pre>
       </body>
       </html>
     `;
@@ -238,11 +281,26 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-auto print:bg-white print:text-black relative">
-        {showExcalidraw ? (
-          <div className="absolute inset-0 z-40 bg-theme-bg" style={{ height: '100%', width: '100%' }}>
+      <div className="flex-1 flex overflow-hidden print:bg-white print:text-black relative">
+        <div className={`flex-1 overflow-auto h-full ${showExcalidraw ? 'border-r border-theme-border' : ''}`}>
+          <CodeMirror
+            value={content}
+            height="100%"
+            theme={oneDark}
+            basicSetup={{ lineNumbers: showLineNumbers }}
+            extensions={[markdown({ base: markdownLanguage })]}
+            onChange={handleContentChange}
+            onCreateEditor={(view) => { viewRef.current = view; }}
+            className="text-base h-full"
+          />
+        </div>
+        
+        {showExcalidraw && (
+          <div className="flex-1 h-full bg-theme-bg relative">
             <Excalidraw 
               theme="dark" 
+              initialData={excalidrawInitialData}
+              onChange={handleExcalidrawChange}
               UIOptions={{
                 canvasActions: {
                   changeViewBackgroundColor: false,
@@ -256,17 +314,6 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
               }}
             />
           </div>
-        ) : (
-          <CodeMirror
-            value={content}
-            height="100%"
-            theme={oneDark}
-            basicSetup={{ lineNumbers: showLineNumbers }}
-            extensions={[markdown({ base: markdownLanguage })]}
-            onChange={handleContentChange}
-            onCreateEditor={(view) => { viewRef.current = view; }}
-            className="text-base h-full"
-          />
         )}
 
         {/* Floating Toolbar */}

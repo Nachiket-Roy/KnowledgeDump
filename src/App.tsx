@@ -146,7 +146,10 @@ function App() {
         <TabBar 
           openNotes={openNoteIds.map(id => notes.find(n => n.id === id)).filter(Boolean) as Note[]}
           activeNoteId={activeNoteId}
-          onSelectNote={setActiveNoteId}
+          onSelectNote={(id) => {
+            setActiveNoteId(id);
+            setViewMode('editor');
+          }}
           onCloseNote={(id, e) => {
             e.stopPropagation();
             setOpenNoteIds(prev => {
