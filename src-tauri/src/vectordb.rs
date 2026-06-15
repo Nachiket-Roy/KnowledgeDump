@@ -146,7 +146,7 @@ pub async fn vector_search_impl(
     
     let table = conn.open_table("vectors").execute().await.map_err(|e| e.to_string())?;
     
-    let mut stream = table.query().nearest_to(&query_vector).map_err(|e| e.to_string())?
+    let mut stream = table.query().nearest_to(query_vector).map_err(|e| e.to_string())?
         .limit(10)
         .execute()
         .await
