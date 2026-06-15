@@ -21,13 +21,13 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #1c1c1c; /* theme-sidebar */
+    background: var(--color-theme-sidebar);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #404040; /* slightly lighter than border for visibility */
+    background: var(--color-theme-border);
     border-radius: 5px;
-    border: 2px solid #1c1c1c; /* match track to create padding */
+    border: 2px solid var(--color-theme-sidebar);
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -37,6 +37,6 @@
   /* Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #404040 #1c1c1c;
+    scrollbar-color: var(--color-theme-border) var(--color-theme-sidebar);
   }
 }
