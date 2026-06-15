@@ -13,4 +13,30 @@
   body {
     @apply bg-theme-bg text-gray-100 font-sans antialiased;
   }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1c1c1c; /* theme-sidebar */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #404040; /* slightly lighter than border for visibility */
+    border-radius: 5px;
+    border: 2px solid #1c1c1c; /* match track to create padding */
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #505050;
+  }
+  
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #404040 #1c1c1c;
+  }
 }
