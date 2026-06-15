@@ -243,7 +243,6 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
           <div className="absolute inset-0 z-40 bg-theme-bg" style={{ height: '100%', width: '100%' }}>
             <Excalidraw 
               theme="dark" 
-              zenModeEnabled={true}
               UIOptions={{
                 canvasActions: {
                   changeViewBackgroundColor: false,
