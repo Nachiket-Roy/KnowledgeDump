@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Sidebar } from './components/Sidebar';
 import { EditorPane } from './components/EditorPane';
+import { GraphView } from './components/GraphView';
 import { Note } from './types';
 import { SearchOverlay } from './components/SearchOverlay';
 import './App.css';
@@ -10,6 +11,7 @@ function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'editor' | 'graph'>('editor');
 
   useEffect(() => {
     loadNotes();
@@ -18,6 +20,10 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setIsSearchOpen(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        setViewMode(prev => prev === 'editor' ? 'graph' : 'editor');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -43,6 +49,7 @@ function App() {
       });
       await loadNotes();
       setActiveNoteId(newId);
+      setViewMode('editor');
     } catch (e) {
       console.error('Failed to create note:', e);
     }
@@ -76,14 +83,26 @@ function App() {
       <Sidebar 
         notes={notes} 
         activeNoteId={activeNoteId} 
-        onSelectNote={setActiveNoteId} 
+        onSelectNote={(id) => {
+          setActiveNoteId(id);
+          setViewMode('editor');
+        }} 
         onCreateNote={handleCreateNote} 
       />
-      <EditorPane 
-        note={activeNote} 
-        onUpdateNote={handleUpdateNote} 
-        onDeleteNote={handleDeleteNote}
-      />
+      {viewMode === 'editor' ? (
+        <EditorPane 
+          note={activeNote} 
+          onUpdateNote={handleUpdateNote} 
+          onDeleteNote={handleDeleteNote}
+        />
+      ) : (
+        <GraphView 
+          onSelectNote={(id) => {
+            setActiveNoteId(id);
+            setViewMode('editor');
+          }}
+        />
+      )}
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );

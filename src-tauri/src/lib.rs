@@ -124,6 +124,115 @@ async fn generate_gemini_description(prompt: String) -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+async fn add_tags_to_note(
+    note_id: String,
+    tags: Vec<String>,
+    pool: State<'_, SqlitePool>,
+) -> Result<(), String> {
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+
+    sqlx::query("DELETE FROM note_tags WHERE note_id = ?")
+        .bind(&note_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    for tag_name in tags {
+        let tag_id = uuid::Uuid::new_v4().to_string();
+        
+        sqlx::query(
+            "INSERT INTO tags (id, name) VALUES (?, ?) ON CONFLICT(name) DO NOTHING"
+        )
+        .bind(&tag_id)
+        .bind(&tag_name)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        let actual_tag_id: String = sqlx::query_scalar(
+            "SELECT id FROM tags WHERE name = ?"
+        )
+        .bind(&tag_name)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        sqlx::query(
+            "INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)"
+        )
+        .bind(&note_id)
+        .bind(&actual_tag_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+    }
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_note_tags(note_id: String, pool: State<'_, SqlitePool>) -> Result<Vec<String>, String> {
+    let tags: Vec<String> = sqlx::query_scalar(
+        "SELECT t.name FROM tags t JOIN note_tags nt ON t.id = nt.tag_id WHERE nt.note_id = ?"
+    )
+    .bind(note_id)
+    .fetch_all(&*pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(tags)
+}
+
+#[tauri::command]
+async fn get_graph_data(pool: State<'_, SqlitePool>) -> Result<models::GraphData, String> {
+    let notes = sqlx::query_as::<_, Note>("SELECT id, title, content, created_at, updated_at FROM notes")
+        .fetch_all(&*pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let tags: Vec<(String, String)> = sqlx::query_as("SELECT id, name FROM tags")
+        .fetch_all(&*pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let note_tags: Vec<(String, String)> = sqlx::query_as("SELECT note_id, tag_id FROM note_tags")
+        .fetch_all(&*pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut nodes = Vec::new();
+    let mut links = Vec::new();
+
+    for note in notes {
+        nodes.push(models::GraphNode {
+            id: note.id.clone(),
+            name: note.title,
+            group: "note".to_string(),
+            val: 10,
+        });
+    }
+
+    for tag in tags {
+        nodes.push(models::GraphNode {
+            id: tag.0.clone(),
+            name: tag.1,
+            group: "tag".to_string(),
+            val: 5,
+        });
+    }
+
+    for nt in note_tags {
+        links.push(models::GraphLink {
+            source: nt.0,
+            target: nt.1,
+        });
+    }
+
+    Ok(models::GraphData { nodes, links })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenvy::dotenv().ok();
@@ -150,7 +259,10 @@ pub fn run() {
             delete_note,
             upsert_vectors,
             vector_search,
-            generate_gemini_description
+            generate_gemini_description,
+            add_tags_to_note,
+            get_note_tags,
+            get_graph_data
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
