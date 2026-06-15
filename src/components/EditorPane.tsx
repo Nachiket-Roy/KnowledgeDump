@@ -240,8 +240,22 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       </div>
       <div className="flex-1 overflow-auto print:bg-white print:text-black relative">
         {showExcalidraw ? (
-          <div className="absolute inset-0 z-40 bg-theme-bg">
-            <Excalidraw theme="dark" />
+          <div className="absolute inset-0 z-40 bg-theme-bg" style={{ height: '100%', width: '100%' }}>
+            <Excalidraw 
+              theme="dark" 
+              zenModeEnabled={true}
+              UIOptions={{
+                canvasActions: {
+                  changeViewBackgroundColor: false,
+                  clearCanvas: false,
+                  export: false,
+                  loadScene: false,
+                  saveAsImage: false,
+                  saveToActiveFile: false,
+                  toggleTheme: false
+                }
+              }}
+            />
           </div>
         ) : (
           <CodeMirror
