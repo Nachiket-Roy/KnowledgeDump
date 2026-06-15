@@ -10,13 +10,13 @@ interface SidebarProps {
 
 export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote }: SidebarProps) {
   return (
-    <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-screen text-gray-200">
-      <div className="p-4 flex items-center justify-between border-b border-gray-800">
+    <div className="w-64 bg-theme-sidebar border-r border-theme-border flex flex-col h-screen text-gray-200">
+      <div className="p-4 flex items-center justify-between border-b border-theme-border">
         <h1 className="font-bold text-lg flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-400" />
+          <FileText className="w-5 h-5 text-theme-accent" />
           KnowledgeDump
         </h1>
-        <button onClick={onCreateNote} className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white">
+        <button onClick={onCreateNote} className="p-1 hover:bg-theme-bg rounded text-gray-400 hover:text-white">
           <Plus className="w-5 h-5" />
         </button>
       </div>
@@ -27,7 +27,7 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote }: Sid
           <input 
             type="text" 
             placeholder="Search notes..." 
-            className="w-full bg-gray-800 text-sm rounded-md py-2 pl-9 pr-3 outline-none focus:ring-1 focus:ring-blue-500 border border-gray-700 placeholder-gray-500"
+            className="w-full bg-theme-input text-sm rounded-md py-2 pl-9 pr-3 outline-none focus:ring-1 focus:ring-theme-accent border border-theme-border placeholder-gray-500"
           />
         </div>
       </div>
@@ -37,7 +37,7 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote }: Sid
           <div 
             key={note.id}
             onClick={() => onSelectNote(note.id)}
-            className={`px-4 py-3 cursor-pointer border-b border-gray-800/50 hover:bg-gray-800 transition-colors ${activeNoteId === note.id ? 'bg-gray-800 border-l-2 border-l-blue-500' : 'border-l-2 border-l-transparent'}`}
+            className={`px-4 py-3 cursor-pointer border-b border-theme-border/50 hover:bg-theme-bg transition-colors ${activeNoteId === note.id ? 'bg-theme-bg border-l-2 border-l-theme-accent' : 'border-l-2 border-l-transparent'}`}
           >
             <div className="font-medium text-sm truncate">{note.title || 'Untitled Note'}</div>
             <div className="text-xs text-gray-500 mt-1 truncate">{note.content.substring(0, 50) || 'No content...'}</div>
@@ -50,10 +50,10 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote }: Sid
         )}
       </div>
 
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-theme-border">
         <button 
           onClick={() => onSelectNote('settings')} 
-          className={`flex items-center gap-2 text-sm text-gray-400 hover:text-gray-100 transition-colors w-full p-2 rounded ${activeNoteId === 'settings' ? 'bg-gray-800 text-white' : ''}`}
+          className={`flex items-center gap-2 text-sm text-gray-400 hover:text-gray-100 transition-colors w-full p-2 rounded ${activeNoteId === 'settings' ? 'bg-theme-bg text-white' : ''}`}
         >
           <SettingsIcon className="w-4 h-4" />
           Settings

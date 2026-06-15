@@ -86,15 +86,15 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote }: EditorPaneProps
 
   if (!note) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#282c34] text-gray-500">
+      <div className="flex-1 flex items-center justify-center bg-theme-bg text-gray-500">
         Select or create a note to begin editing.
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#282c34] h-screen">
-      <div className="p-4 border-b border-gray-800 flex flex-col bg-gray-900 gap-2">
+    <div className="flex-1 flex flex-col bg-theme-bg h-screen">
+      <div className="p-4 border-b border-theme-border flex flex-col bg-theme-bg gap-2">
         <div className="flex justify-between items-center">
           <input 
             type="text" 
@@ -114,7 +114,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote }: EditorPaneProps
         {/* Tags Display */}
         <div className="flex flex-wrap gap-2 items-center min-h-[24px]">
           {tags.map(tag => (
-            <span key={tag} className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-900/30 text-blue-300 border border-blue-800">
+            <span key={tag} className="px-2 py-0.5 rounded-full text-xs font-medium bg-theme-accent/20 text-theme-accent border border-theme-accent/50">
               #{tag}
             </span>
           ))}

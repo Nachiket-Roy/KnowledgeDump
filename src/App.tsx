@@ -105,7 +105,7 @@ function App() {
   const activeNote = notes.find(n => n.id === activeNoteId) || null;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-900">
+    <div className="flex h-screen w-screen overflow-hidden bg-theme-bg">
       <Sidebar 
         notes={notes} 
         activeNoteId={activeNoteId} 
