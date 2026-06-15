@@ -1,7 +1,7 @@
 import { pipeline, env } from '@xenova/transformers';
 
 // Enable browser caching for the model
-env.allowLocalModels = true;
+env.allowLocalModels = false;
 env.useBrowserCache = true;
 
 let extractor: any = null;
