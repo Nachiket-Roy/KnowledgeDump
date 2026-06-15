@@ -12,7 +12,7 @@ interface SearchResult {
   ai_description?: string;
 }
 
-export function SearchOverlay({ isOpen, onClose, onSelectNote }: { isOpen: boolean, onClose: () => void, onSelectNote?: (id: string) => void }) {
+export function SearchOverlay({ isOpen, onClose, onSelectNote }: { isOpen: boolean, onClose: () => void, onSelectNote?: (id: string, snippet?: string) => void }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -99,16 +99,16 @@ export function SearchOverlay({ isOpen, onClose, onSelectNote }: { isOpen: boole
                  <div 
                    key={res.id} 
                    onClick={() => {
-                     if (onSelectNote) onSelectNote(res.note_id);
+                     if (onSelectNote) onSelectNote(res.note_id, res.text_snippet);
                      onClose();
                    }}
                    className="bg-theme-sidebar border border-theme-border rounded-xl p-4 hover:border-theme-accent/50 hover:bg-[#2a2a2b] transition-colors cursor-pointer group"
                  >
                    <div className="flex justify-between items-start mb-2">
                      <h3 className="text-theme-accent font-semibold text-lg group-hover:text-theme-accentHover">{res.heading}</h3>
-                     <span className="text-xs font-mono bg-green-900/30 text-green-400 px-2 py-1 rounded">
-                       {(Math.max(0, 100 - (res.distance * 100))).toFixed(0)}% Match
-                     </span>
+                      <span className="text-xs font-mono bg-green-900/30 text-green-400 px-2 py-1 rounded">
+                        {Math.max(0, (1 - (res.distance * res.distance) / 2) * 100).toFixed(0)}% Match
+                      </span>
                    </div>
                    <div className="text-sm text-gray-400 mb-3 flex items-center gap-2">
                      <span className="bg-theme-input px-2 py-0.5 rounded text-xs text-gray-300">Note: {res.heading}</span>

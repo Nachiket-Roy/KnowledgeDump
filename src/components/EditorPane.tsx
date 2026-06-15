@@ -1,8 +1,10 @@
 import { Note } from '../types';
 import CodeMirror from '@uiw/react-codemirror';
+import { EditorView } from '@codemirror/view';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { extractTags } from '../lib/ai';
 
@@ -10,9 +12,12 @@ interface EditorPaneProps {
   note: Note | null;
   onUpdateNote: (id: string, title: string, content: string) => void;
   onDeleteNote: (id: string) => void;
+  highlightSnippet?: string | null;
+  clearHighlight?: () => void;
 }
 
-export function EditorPane({ note, onUpdateNote, onDeleteNote }: EditorPaneProps) {
+export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet, clearHighlight }: EditorPaneProps) {
+  const viewRef = React.useRef<any>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -68,6 +73,23 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote }: EditorPaneProps
 
     return () => clearTimeout(timer);
   }, [content, note?.id]);
+
+  useEffect(() => {
+    if (highlightSnippet && viewRef.current && content) {
+      // Small timeout to let the editor render completely
+      setTimeout(() => {
+        if (!viewRef.current) return;
+        const index = content.indexOf(highlightSnippet.trim());
+        if (index !== -1) {
+          viewRef.current.dispatch({
+            selection: { anchor: index, head: index + highlightSnippet.trim().length },
+            effects: [EditorView.scrollIntoView(index, { y: 'center' })]
+          });
+        }
+        if (clearHighlight) clearHighlight();
+      }, 100);
+    }
+  }, [highlightSnippet, content]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -132,6 +154,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote }: EditorPaneProps
           theme={oneDark}
           extensions={[markdown({ base: markdownLanguage })]}
           onChange={handleContentChange}
+          onCreateEditor={(view) => { viewRef.current = view; }}
           className="text-base h-full"
         />
       </div>

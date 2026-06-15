@@ -8,6 +8,16 @@ let extractor: any = null;
 
 async function getInstance() {
   if (!extractor) {
+    // Clear the corrupted cache from the previous local models bug
+    try {
+      const keys = await caches.keys();
+      for (const key of keys) {
+        await caches.delete(key);
+      }
+    } catch (e) {
+      console.warn("Could not clear cache", e);
+    }
+
     extractor = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
       progress_callback: (info: any) => {
         self.postMessage({ status: 'progress', data: info });

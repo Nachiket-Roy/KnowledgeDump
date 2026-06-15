@@ -15,6 +15,7 @@ const vectorSyncTimers = new Map<string, any>();
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [highlightSnippet, setHighlightSnippet] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'editor' | 'graph' | 'settings'>('editor');
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -138,6 +139,8 @@ function App() {
           note={activeNote} 
           onUpdateNote={handleUpdateNote} 
           onDeleteNote={handleDeleteNote}
+          highlightSnippet={highlightSnippet}
+          clearHighlight={() => setHighlightSnippet(null)}
         />
       ) : (
         <GraphView 
@@ -148,7 +151,15 @@ function App() {
         />
       )}
       
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        onSelectNote={(id, snippet) => {
+          setActiveNoteId(id);
+          setHighlightSnippet(snippet || null);
+          setViewMode('editor');
+        }} 
+      />
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
