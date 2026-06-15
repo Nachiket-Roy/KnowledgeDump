@@ -1,7 +1,10 @@
 pub mod models;
 pub mod db;
+pub mod chunker;
+pub mod vectordb;
 
 use sqlx::SqlitePool;
+use lancedb::connection::Connection as LanceDbConnection;
 use tauri::State;
 use models::Note;
 
@@ -77,6 +80,24 @@ async fn delete_note(id: String, pool: State<'_, SqlitePool>) -> Result<(), Stri
     Ok(())
 }
 
+#[tauri::command]
+async fn upsert_vectors(
+    vectors: Vec<vectordb::ChunkVector>,
+    conn: State<'_, LanceDbConnection>,
+) -> Result<(), String> {
+    println!("Received {} vectors to upsert", vectors.len());
+    Ok(())
+}
+
+#[tauri::command]
+async fn vector_search(
+    query_vector: Vec<f32>,
+    conn: State<'_, LanceDbConnection>,
+) -> Result<Vec<vectordb::SearchResult>, String> {
+    println!("Received search query vector of length {}", query_vector.len());
+    Ok(vec![])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -87,6 +108,9 @@ pub fn run() {
             tauri::async_runtime::block_on(async move {
                 let pool = db::init_db(&handle).await.expect("Failed to init database");
                 handle.manage(pool);
+                
+                let lance_conn = vectordb::init_vector_db(&handle).await.expect("Failed to init LanceDB");
+                handle.manage(lance_conn);
             });
             
             Ok(())
@@ -95,7 +119,9 @@ pub fn run() {
             list_notes,
             get_note,
             save_note,
-            delete_note
+            delete_note,
+            upsert_vectors,
+            vector_search
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
