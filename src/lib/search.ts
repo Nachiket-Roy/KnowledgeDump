@@ -21,6 +21,7 @@ export function searchKeywords(index: lunr.Index | null, query: string): { id: s
       score: r.score
     }));
   } catch (e) {
+    console.error('Keyword search failed:', e);
     return [];
   }
 }

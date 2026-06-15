@@ -85,8 +85,7 @@ async fn upsert_vectors(
     vectors: Vec<vectordb::ChunkVector>,
     conn: State<'_, LanceDbConnection>,
 ) -> Result<(), String> {
-    println!("Received {} vectors to upsert", vectors.len());
-    Ok(())
+    Err("Not yet implemented".to_string())
 }
 
 #[tauri::command]
@@ -94,8 +93,7 @@ async fn vector_search(
     query_vector: Vec<f32>,
     conn: State<'_, LanceDbConnection>,
 ) -> Result<Vec<vectordb::SearchResult>, String> {
-    println!("Received search query vector of length {}", query_vector.len());
-    Ok(vec![])
+    Err("Not yet implemented".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -106,12 +104,13 @@ pub fn run() {
             let handle = app.handle().clone();
             
             tauri::async_runtime::block_on(async move {
-                let pool = db::init_db(&handle).await.expect("Failed to init database");
+                let pool = db::init_db(&handle).await.map_err(|e| Box::<dyn std::error::Error>::from(e))?;
                 handle.manage(pool);
                 
-                let lance_conn = vectordb::init_vector_db(&handle).await.expect("Failed to init LanceDB");
+                let lance_conn = vectordb::init_vector_db(&handle).await.map_err(|e| Box::<dyn std::error::Error>::from(e))?;
                 handle.manage(lance_conn);
-            });
+                Ok::<(), Box<dyn std::error::Error>>(())
+            })?;
             
             Ok(())
         })

@@ -8,26 +8,26 @@ let extractor: any = null;
 
 async function getInstance() {
   if (!extractor) {
-    extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+    extractor = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
       progress_callback: (info: any) => {
         self.postMessage({ status: 'progress', data: info });
       }
     });
   }
-  return extractor;
+  return await extractor;
 }
 
 self.addEventListener('message', async (event) => {
   const { id, text } = event.data;
   
-  if (text === undefined) {
-      // Initialize model without processing text
-      await getInstance();
-      self.postMessage({ status: 'ready' });
-      return;
-  }
-
   try {
+    if (text === undefined) {
+        // Initialize model without processing text
+        await getInstance();
+        self.postMessage({ status: 'ready', id });
+        return;
+    }
+
     const ext = await getInstance();
     const output = await ext(text, { pooling: 'mean', normalize: true });
     
@@ -40,6 +40,6 @@ self.addEventListener('message', async (event) => {
       vector 
     });
   } catch (error: any) {
-    self.postMessage({ status: 'error', error: error.message });
+    self.postMessage({ status: 'error', id, error: error.message });
   }
 });

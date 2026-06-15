@@ -24,11 +24,13 @@ pub async fn init_vector_db(app_handle: &tauri::AppHandle) -> Result<Connection,
     let app_dir = app_handle
         .path()
         .app_data_dir()
-        .expect("Failed to get app data dir");
+        .map_err(|e| e.to_string())?;
     
     let db_path = app_dir.join("lancedb");
     
-    let conn = lancedb::connect(db_path.to_str().unwrap())
+    let db_path_str = db_path.to_str().ok_or_else(|| "Invalid db path".to_string())?;
+    
+    let conn = lancedb::connect(db_path_str)
         .execute()
         .await
         .map_err(|e| e.to_string())?;
