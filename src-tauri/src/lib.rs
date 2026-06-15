@@ -116,6 +116,12 @@ async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) ->
     if key == "gemini_api_key" {
         let entry = keyring::Entry::new("KnowledgeDump", "gemini_api_key").map_err(|e| e.to_string())?;
         entry.set_password(&value).map_err(|e| e.to_string())?;
+        // Cleanup legacy plaintext storage from earlier versions.
+        sqlx::query("DELETE FROM settings WHERE key = ?")
+            .bind("gemini_api_key")
+            .execute(&*pool)
+            .await
+            .map_err(|e| e.to_string())?;
         return Ok(());
     }
 
@@ -141,14 +147,15 @@ async fn generate_gemini_description(prompt: String, pool: State<'_, SqlitePool>
         return Err("GEMINI_API_KEY not set".to_string());
     }
     
-    let url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", api_key);
+    let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(4))
         .build()
         .map_err(|e| e.to_string())?;
         
-    let response = client.post(&url)
+    let response = client.post(url)
+        .header("x-goog-api-key", api_key)
         .json(&serde_json::json!({
             "contents": [{
                 "parts": [{"text": prompt}]
@@ -156,9 +163,9 @@ async fn generate_gemini_description(prompt: String, pool: State<'_, SqlitePool>
         }))
         .send()
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|_| "Failed to communicate with Gemini API".to_string())?
         .error_for_status()
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "Gemini API returned an error status".to_string())?;
         
     let res_json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
     
@@ -183,7 +190,10 @@ async fn add_tags_to_note(
         .await
         .map_err(|e| e.to_string())?;
 
-    let unique_tags: std::collections::HashSet<String> = tags.into_iter().collect();
+    let unique_tags: std::collections::HashSet<String> = tags.into_iter()
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+        .collect();
 
     for tag_name in unique_tags {
         let tag_id = uuid::Uuid::new_v4().to_string();
@@ -234,7 +244,7 @@ async fn get_note_tags(note_id: String, pool: State<'_, SqlitePool>) -> Result<V
 
 #[tauri::command]
 async fn get_graph_data(pool: State<'_, SqlitePool>) -> Result<models::GraphData, String> {
-    let notes = sqlx::query_as::<_, Note>("SELECT id, title, content, created_at, updated_at FROM notes")
+    let notes: Vec<(String, String)> = sqlx::query_as("SELECT id, title FROM notes")
         .fetch_all(&*pool)
         .await
         .map_err(|e| e.to_string())?;
@@ -254,8 +264,8 @@ async fn get_graph_data(pool: State<'_, SqlitePool>) -> Result<models::GraphData
 
     for note in notes {
         nodes.push(models::GraphNode {
-            id: note.id.clone(),
-            name: note.title,
+            id: note.0,
+            name: note.1,
             group: "note".to_string(),
             val: 10,
         });
