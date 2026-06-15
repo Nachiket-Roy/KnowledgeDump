@@ -112,7 +112,8 @@ pub async fn upsert_vectors_impl(
         let table = conn.open_table("vectors").execute().await.map_err(|e| e.to_string())?;
         
         for note_id in unique_note_ids {
-            table.delete(format!("note_id = '{}'", note_id)).await.map_err(|e| e.to_string())?;
+            let safe_id = note_id.replace("'", "''");
+            table.delete(format!("note_id = '{}'", safe_id)).await.map_err(|e| e.to_string())?;
         }
         
         table.add(Box::new(RecordBatchIterator::new(batches.into_iter().map(Ok), create_schema())))
@@ -133,6 +134,10 @@ pub async fn vector_search_impl(
     conn: &Connection,
     query_vector: Vec<f32>,
 ) -> Result<Vec<SearchResult>, String> {
+    if query_vector.len() != 384 {
+        return Err(format!("Expected 384 dimensions for search vector, got {}", query_vector.len()));
+    }
+
     let table_names = conn.table_names().execute().await.map_err(|e| e.to_string())?;
     if !table_names.contains(&"vectors".to_string()) {
         return Ok(vec![]);
@@ -151,13 +156,13 @@ pub async fn vector_search_impl(
     while let Some(batch_res) = stream.next().await {
         let batch = batch_res.map_err(|e| e.to_string())?;
         
-        let id_col = batch.column(0).as_any().downcast_ref::<StringArray>().unwrap();
-        let note_id_col = batch.column(1).as_any().downcast_ref::<StringArray>().unwrap();
-        let heading_col = batch.column(2).as_any().downcast_ref::<StringArray>().unwrap();
-        let text_snippet_col = batch.column(3).as_any().downcast_ref::<StringArray>().unwrap();
+        let id_col = batch.column(0).as_any().downcast_ref::<StringArray>().ok_or("Failed to downcast id_col")?;
+        let note_id_col = batch.column(1).as_any().downcast_ref::<StringArray>().ok_or("Failed to downcast note_id_col")?;
+        let heading_col = batch.column(2).as_any().downcast_ref::<StringArray>().ok_or("Failed to downcast heading_col")?;
+        let text_snippet_col = batch.column(3).as_any().downcast_ref::<StringArray>().ok_or("Failed to downcast text_snippet_col")?;
         
         let distance_col_idx = batch.schema().index_of("_distance").map_err(|e| e.to_string())?;
-        let distance_col = batch.column(distance_col_idx).as_any().downcast_ref::<Float32Array>().unwrap();
+        let distance_col = batch.column(distance_col_idx).as_any().downcast_ref::<Float32Array>().ok_or("Failed to downcast distance_col")?;
         
         for i in 0..batch.num_rows() {
             results.push(SearchResult {

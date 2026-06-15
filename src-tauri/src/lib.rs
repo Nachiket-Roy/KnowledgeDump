@@ -163,9 +163,9 @@ async fn generate_gemini_description(prompt: String, _pool: State<'_, SqlitePool
         }))
         .send()
         .await
-        .map_err(|_| "Failed to communicate with Gemini API".to_string())?
+        .map_err(|e| format!("Failed to communicate with Gemini API: {}", e))?
         .error_for_status()
-        .map_err(|_| "Gemini API returned an error status".to_string())?;
+        .map_err(|e| format!("Gemini API returned an error status: {}", e))?;
         
     let res_json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
     
