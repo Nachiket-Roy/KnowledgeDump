@@ -7,7 +7,8 @@ import { useState, useEffect } from 'react';
 import * as React from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { extractTags, generateTitle } from '../lib/ai';
-import { Bold, Italic, List, Quote, Download, FileText, Code } from 'lucide-react';
+import { Bold, Italic, List, Quote, Download, FileText, Code, PenTool, X } from 'lucide-react';
+import { Excalidraw } from '@excalidraw/excalidraw';
 
 interface EditorPaneProps {
   note: Note | null;
@@ -26,6 +27,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
   const [isTitling, setIsTitling] = useState(false);
   const [showLineNumbers, setShowLineNumbers] = useState(true);
   const [autoTitleEnabled, setAutoTitleEnabled] = useState(false);
+  const [showExcalidraw, setShowExcalidraw] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -236,17 +238,35 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-auto print:bg-white print:text-black">
-        <CodeMirror
-          value={content}
-          height="100%"
-          theme={oneDark}
-          basicSetup={{ lineNumbers: showLineNumbers }}
-          extensions={[markdown({ base: markdownLanguage })]}
-          onChange={handleContentChange}
-          onCreateEditor={(view) => { viewRef.current = view; }}
-          className="text-base h-full"
-        />
+      <div className="flex-1 overflow-auto print:bg-white print:text-black relative">
+        {showExcalidraw ? (
+          <div className="absolute inset-0 z-40 bg-theme-bg">
+            <Excalidraw theme="dark" />
+          </div>
+        ) : (
+          <CodeMirror
+            value={content}
+            height="100%"
+            theme={oneDark}
+            basicSetup={{ lineNumbers: showLineNumbers }}
+            extensions={[markdown({ base: markdownLanguage })]}
+            onChange={handleContentChange}
+            onCreateEditor={(view) => { viewRef.current = view; }}
+            className="text-base h-full"
+          />
+        )}
+
+        {/* Floating Toolbar */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center bg-theme-sidebar/90 backdrop-blur-md border border-theme-border rounded-full shadow-2xl z-50">
+          <button 
+            onClick={() => setShowExcalidraw(!showExcalidraw)} 
+            className={`p-3 rounded-full transition-colors flex items-center gap-2 font-medium ${showExcalidraw ? 'bg-theme-accent text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+            title={showExcalidraw ? "Close Drawing Mode" : "Open Drawing Mode"}
+          >
+            {showExcalidraw ? <X size={20} /> : <PenTool size={20} />}
+            {showExcalidraw && <span className="pr-2">Close Canvas</span>}
+          </button>
+        </div>
       </div>
     </div>
   );
