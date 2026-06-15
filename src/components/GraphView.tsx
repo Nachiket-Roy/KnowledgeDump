@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import ForceGraph2D, { ForceGraphMethods } from 'react-force-graph-2d';
 import { invoke } from '@tauri-apps/api/core';
-import { GraphData, GraphNode } from '../types';
+import { GraphData } from '../types';
 
 interface GraphViewProps {
   onSelectNote: (noteId: string) => void;
@@ -11,7 +11,7 @@ export function GraphView({ onSelectNote }: GraphViewProps) {
   const [data, setData] = useState<GraphData>({ nodes: [], links: [] });
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<ForceGraphMethods | null>(null);
+  const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
 
   useEffect(() => {
     loadGraphData();
@@ -46,7 +46,7 @@ export function GraphView({ onSelectNote }: GraphViewProps) {
     }
   };
 
-  const handleNodeClick = (node: GraphNode) => {
+  const handleNodeClick = (node: any) => {
     if (node.group === 'note') {
       onSelectNote(node.id);
     } else {
