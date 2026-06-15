@@ -3,14 +3,25 @@ import { invoke } from '@tauri-apps/api/core';
 import { Sidebar } from './components/Sidebar';
 import { EditorPane } from './components/EditorPane';
 import { Note } from './types';
+import { SearchOverlay } from './components/SearchOverlay';
 import './App.css';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     loadNotes();
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const loadNotes = async () => {
@@ -73,6 +84,7 @@ function App() {
         onUpdateNote={handleUpdateNote} 
         onDeleteNote={handleDeleteNote}
       />
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }
