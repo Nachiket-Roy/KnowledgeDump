@@ -7,7 +7,10 @@ import { SettingsView } from './components/SettingsView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { Note } from './types';
 import { SearchOverlay } from './components/SearchOverlay';
+import { upsertNoteVectors } from './lib/vectorSync';
 import './App.css';
+
+const vectorSyncTimers = new Map<string, any>();
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -85,6 +88,13 @@ function App() {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, title, content } : n));
     try {
       await invoke('save_note', { id, title, content });
+      
+      // Debounce vector sync for 2 seconds
+      if (vectorSyncTimers.has(id)) clearTimeout(vectorSyncTimers.get(id));
+      vectorSyncTimers.set(id, setTimeout(() => {
+        upsertNoteVectors({ id, title, content, created_at: '', updated_at: '' }).catch(console.error);
+        vectorSyncTimers.delete(id);
+      }, 2000));
     } catch (e) {
       console.error('Failed to save note:', e);
     }
