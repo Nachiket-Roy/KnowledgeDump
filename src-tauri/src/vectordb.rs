@@ -4,6 +4,7 @@ use arrow_array::{StringArray, FixedSizeListArray, Float32Array, RecordBatch, Re
 use lancedb::connection::Connection;
 use lancedb::query::{ExecutableQuery, QueryBase};
 use futures::StreamExt;
+use lance_arrow::FixedSizeListArrayExt;
 use tauri::Manager;
 use serde::{Deserialize, Serialize};
 
@@ -113,7 +114,7 @@ pub async fn upsert_vectors_impl(
         
         for note_id in unique_note_ids {
             let safe_id = note_id.replace("'", "''");
-            table.delete(format!("note_id = '{}'", safe_id)).await.map_err(|e| e.to_string())?;
+            table.delete(format!("note_id = '{}'", safe_id).as_str()).await.map_err(|e| e.to_string())?;
         }
         
         table.add(Box::new(RecordBatchIterator::new(batches.into_iter().map(Ok), create_schema())))
@@ -145,7 +146,7 @@ pub async fn vector_search_impl(
     
     let table = conn.open_table("vectors").execute().await.map_err(|e| e.to_string())?;
     
-    let mut stream = table.search(&query_vector)
+    let mut stream = table.query().nearest_to(&query_vector).map_err(|e| e.to_string())?
         .limit(10)
         .execute()
         .await
