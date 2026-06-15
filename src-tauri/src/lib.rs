@@ -96,6 +96,12 @@ async fn vector_search(
     Err("Not yet implemented".to_string())
 }
 
+#[tauri::command]
+async fn generate_gemini_description(prompt: String) -> Result<String, String> {
+    // Note: Secure backend implementation would hit the Gemini API here
+    Err("Not yet implemented on backend".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -120,7 +126,8 @@ pub fn run() {
             save_note,
             delete_note,
             upsert_vectors,
-            vector_search
+            vector_search,
+            generate_gemini_description
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { invoke } from '@tauri-apps/api/core';
 import { Ollama } from 'ollama/browser';
 
 export async function generateAiDescription(query: string, chunkContent: string): Promise<string> {
@@ -7,15 +7,8 @@ Query: "${query}"
 Text: "${chunkContent}"`;
 
   try {
-    const geminiKey = localStorage.getItem('gemini_api_key');
-    if (geminiKey) {
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: prompt,
-      });
-      if (response.text) return response.text;
-    }
+    const description = await invoke<string>('generate_gemini_description', { prompt });
+    if (description) return description;
   } catch (error) {
     console.warn('Gemini API failed or key missing, falling back to local Ollama', error);
   }

@@ -6,7 +6,12 @@ export function SearchOverlay({ isOpen, onClose }: { isOpen: boolean, onClose: (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex justify-center items-start pt-24 transition-opacity duration-300">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex justify-center items-start pt-24 transition-opacity duration-300"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search notes"
+    >
       <div className="bg-gray-900 w-full max-w-3xl rounded-2xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[75vh]">
         
         <div className="p-5 border-b border-gray-700 flex items-center bg-gray-800/50">
