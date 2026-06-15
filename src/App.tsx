@@ -54,8 +54,19 @@ function App() {
     }
   };
 
+  const generateId = () => {
+    if (crypto && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback for non-secure contexts (e.g. testing over HTTP IP)
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const handleCreateNote = async () => {
-    const newId = crypto.randomUUID();
+    const newId = generateId();
     try {
       await invoke('save_note', {
         id: newId,
