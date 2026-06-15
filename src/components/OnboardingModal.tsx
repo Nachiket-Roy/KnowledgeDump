@@ -19,10 +19,10 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     // Mark as onboarded
     try {
       await invoke('set_setting', { key: 'has_onboarded', value: 'true' });
+      onComplete();
     } catch (e) {
       console.error('Failed to mark onboarded:', e);
     }
-    onComplete();
   };
 
   return (

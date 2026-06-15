@@ -11,7 +11,7 @@ export function GraphView({ onSelectNote }: GraphViewProps) {
   const [data, setData] = useState<GraphData>({ nodes: [], links: [] });
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<ForceGraphMethods>();
+  const graphRef = useRef<ForceGraphMethods | null>(null);
 
   useEffect(() => {
     loadGraphData();

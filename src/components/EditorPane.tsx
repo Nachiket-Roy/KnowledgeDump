@@ -19,21 +19,27 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote }: EditorPaneProps
   const [isTagging, setIsTagging] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (note) {
       setTitle(note.title);
       setContent(note.content);
-      loadTags(note.id);
+      loadTags(note.id, () => isMounted);
     } else {
       setTitle('');
       setContent('');
       setTags([]);
     }
+
+    return () => { isMounted = false; };
   }, [note?.id]);
 
-  const loadTags = async (noteId: string) => {
+  const loadTags = async (noteId: string, isMounted: () => boolean) => {
     try {
       const fetchedTags = await invoke<string[]>('get_note_tags', { noteId });
-      setTags(fetchedTags);
+      if (isMounted()) {
+        setTags(fetchedTags);
+      }
     } catch (e) {
       console.error('Failed to load tags:', e);
     }
@@ -47,9 +53,11 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote }: EditorPaneProps
       setIsTagging(true);
       try {
         const newTags = await extractTags(content);
+        await invoke('add_tags_to_note', { noteId: note.id, tags: newTags });
         if (newTags.length > 0) {
-          await invoke('add_tags_to_note', { noteId: note.id, tags: newTags });
           setTags(newTags);
+        } else {
+          setTags([]);
         }
       } catch (e) {
         console.error('Auto-tagging failed:', e);

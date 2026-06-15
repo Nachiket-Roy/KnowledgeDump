@@ -5,7 +5,7 @@
 KnowledgeDump is designed for individuals who need to capture information freely — notes, PR comments, research, code snippets, meeting dumps — and retrieve exactly the right section later using natural language queries.
 
 ## Core Features
-- **Semantic Search**: Find exactly what you are looking for using conceptual searches, not just keyword matches. Returns section-level results with AI-generated descriptions.
+- **Semantic Search**: Find exactly what you are looking for using conceptual searches, not just keyword matches. Returns section-level results with AI-generated descriptions. Semantic search embeddings are computed on-device using Transformers.js.
 - **Auto-tagging**: Extracts 1-4 concept tags from your text automatically in the background as you write.
 - **Knowledge Graph**: Visualize connections between your notes natively in a beautiful 2D force-directed graph.
 - **Offline First**: All data is stored locally in SQLite. The vector embeddings run entirely on-device (via Transformers.js), and AI functions can transparently fall back to local Ollama if offline.

@@ -12,6 +12,8 @@ export interface GraphNode {
   name: string;
   group: string;
   val: number;
+  x?: number;
+  y?: number;
 }
 
 export interface GraphLink {

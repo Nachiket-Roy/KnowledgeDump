@@ -72,11 +72,13 @@ Text: "${content}"`;
 
   // Robust JSON extraction to handle markdown wrappers
   try {
-    const match = jsonResponse.match(/\[.*\]/s);
+    const match = jsonResponse.match(/\[.*?\]/s);
     if (match) {
       const parsed = JSON.parse(match[0]);
       if (Array.isArray(parsed)) {
-        return parsed.map(String).slice(0, 4);
+        return parsed
+          .filter(item => typeof item === 'string')
+          .slice(0, 4);
       }
     }
   } catch (e) {

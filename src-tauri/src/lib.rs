@@ -98,6 +98,11 @@ async fn vector_search(
 
 #[tauri::command]
 async fn get_setting(key: String, pool: State<'_, SqlitePool>) -> Result<Option<String>, String> {
+    if key == "gemini_api_key" {
+        let entry = keyring::Entry::new("KnowledgeDump", "gemini_api_key").map_err(|e| e.to_string())?;
+        return Ok(entry.get_password().ok());
+    }
+
     let result: Option<String> = sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
         .bind(key)
         .fetch_optional(&*pool)
@@ -108,6 +113,12 @@ async fn get_setting(key: String, pool: State<'_, SqlitePool>) -> Result<Option<
 
 #[tauri::command]
 async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) -> Result<(), String> {
+    if key == "gemini_api_key" {
+        let entry = keyring::Entry::new("KnowledgeDump", "gemini_api_key").map_err(|e| e.to_string())?;
+        entry.set_password(&value).map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
     sqlx::query("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
         .bind(key)
         .bind(value)
@@ -119,13 +130,11 @@ async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) ->
 
 #[tauri::command]
 async fn generate_gemini_description(prompt: String, pool: State<'_, SqlitePool>) -> Result<String, String> {
-    let api_key = match sqlx::query_scalar::<_, String>("SELECT value FROM settings WHERE key = 'gemini_api_key'")
-        .fetch_optional(&*pool)
-        .await
-        .map_err(|e| e.to_string())? 
+    let api_key = match keyring::Entry::new("KnowledgeDump", "gemini_api_key")
+        .and_then(|e| e.get_password()) 
     {
-        Some(k) => k,
-        None => std::env::var("GEMINI_API_KEY").unwrap_or_default(),
+        Ok(k) => k,
+        Err(_) => std::env::var("GEMINI_API_KEY").unwrap_or_default(),
     };
 
     if api_key.is_empty() {
@@ -134,7 +143,11 @@ async fn generate_gemini_description(prompt: String, pool: State<'_, SqlitePool>
     
     let url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", api_key);
     
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(4))
+        .build()
+        .map_err(|e| e.to_string())?;
+        
     let response = client.post(&url)
         .json(&serde_json::json!({
             "contents": [{
@@ -170,7 +183,9 @@ async fn add_tags_to_note(
         .await
         .map_err(|e| e.to_string())?;
 
-    for tag_name in tags {
+    let unique_tags: std::collections::HashSet<String> = tags.into_iter().collect();
+
+    for tag_name in unique_tags {
         let tag_id = uuid::Uuid::new_v4().to_string();
         
         sqlx::query(
