@@ -1,5 +1,5 @@
 use lancedb::connection::Connection;
-use std::sync::Arc;
+use tauri::Manager;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

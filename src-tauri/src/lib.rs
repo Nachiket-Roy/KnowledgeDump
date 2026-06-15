@@ -5,7 +5,7 @@ pub mod vectordb;
 
 use sqlx::SqlitePool;
 use lancedb::connection::Connection as LanceDbConnection;
-use tauri::State;
+use tauri::{State, Manager};
 use models::Note;
 
 #[tauri::command]
@@ -82,22 +82,22 @@ async fn delete_note(id: String, pool: State<'_, SqlitePool>) -> Result<(), Stri
 
 #[tauri::command]
 async fn upsert_vectors(
-    vectors: Vec<vectordb::ChunkVector>,
-    conn: State<'_, LanceDbConnection>,
+    _vectors: Vec<vectordb::ChunkVector>,
+    _conn: State<'_, LanceDbConnection>,
 ) -> Result<(), String> {
     Err("Not yet implemented".to_string())
 }
 
 #[tauri::command]
 async fn vector_search(
-    query_vector: Vec<f32>,
-    conn: State<'_, LanceDbConnection>,
+    _query_vector: Vec<f32>,
+    _conn: State<'_, LanceDbConnection>,
 ) -> Result<Vec<vectordb::SearchResult>, String> {
     Err("Not yet implemented".to_string())
 }
 
 #[tauri::command]
-async fn generate_gemini_description(prompt: String) -> Result<String, String> {
+async fn generate_gemini_description(_prompt: String) -> Result<String, String> {
     // Note: Secure backend implementation would hit the Gemini API here
     Err("Not yet implemented on backend".to_string())
 }
