@@ -97,8 +97,40 @@ async fn vector_search(
 }
 
 #[tauri::command]
-async fn generate_gemini_description(prompt: String) -> Result<String, String> {
-    let api_key = std::env::var("GEMINI_API_KEY").map_err(|_| "GEMINI_API_KEY not set".to_string())?;
+async fn get_setting(key: String, pool: State<'_, SqlitePool>) -> Result<Option<String>, String> {
+    let result: Option<String> = sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
+        .bind(key)
+        .fetch_optional(&*pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(result)
+}
+
+#[tauri::command]
+async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) -> Result<(), String> {
+    sqlx::query("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+        .bind(key)
+        .bind(value)
+        .execute(&*pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn generate_gemini_description(prompt: String, pool: State<'_, SqlitePool>) -> Result<String, String> {
+    let api_key = match sqlx::query_scalar::<_, String>("SELECT value FROM settings WHERE key = 'gemini_api_key'")
+        .fetch_optional(&*pool)
+        .await
+        .map_err(|e| e.to_string())? 
+    {
+        Some(k) => k,
+        None => std::env::var("GEMINI_API_KEY").unwrap_or_default(),
+    };
+
+    if api_key.is_empty() {
+        return Err("GEMINI_API_KEY not set".to_string());
+    }
     
     let url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", api_key);
     
@@ -262,7 +294,9 @@ pub fn run() {
             generate_gemini_description,
             add_tags_to_note,
             get_note_tags,
-            get_graph_data
+            get_graph_data,
+            get_setting,
+            set_setting
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

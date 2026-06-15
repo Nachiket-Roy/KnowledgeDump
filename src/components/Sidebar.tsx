@@ -1,5 +1,5 @@
 import { Note } from '../types';
-import { Plus, Search, FileText } from 'lucide-react';
+import { Plus, Search, FileText, Settings as SettingsIcon } from 'lucide-react';
 
 interface SidebarProps {
   notes: Note[];
@@ -48,6 +48,16 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote }: Sid
             No notes yet. Create one!
           </div>
         )}
+      </div>
+
+      <div className="p-4 border-t border-gray-800">
+        <button 
+          onClick={() => onSelectNote('settings')} 
+          className={`flex items-center gap-2 text-sm text-gray-400 hover:text-gray-100 transition-colors w-full p-2 rounded ${activeNoteId === 'settings' ? 'bg-gray-800 text-white' : ''}`}
+        >
+          <SettingsIcon className="w-4 h-4" />
+          Settings
+        </button>
       </div>
     </div>
   );

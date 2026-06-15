@@ -3,6 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { Sidebar } from './components/Sidebar';
 import { EditorPane } from './components/EditorPane';
 import { GraphView } from './components/GraphView';
+import { SettingsView } from './components/SettingsView';
+import { OnboardingModal } from './components/OnboardingModal';
 import { Note } from './types';
 import { SearchOverlay } from './components/SearchOverlay';
 import './App.css';
@@ -11,10 +13,12 @@ function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'editor' | 'graph'>('editor');
+  const [viewMode, setViewMode] = useState<'editor' | 'graph' | 'settings'>('editor');
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     loadNotes();
+    checkOnboarding();
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -29,6 +33,17 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const checkOnboarding = async () => {
+    try {
+      const onboarded = await invoke<string | null>('get_setting', { key: 'has_onboarded' });
+      if (!onboarded) {
+        setShowOnboarding(true);
+      }
+    } catch (e) {
+      console.error('Failed to check onboarding:', e);
+    }
+  };
 
   const loadNotes = async () => {
     try {
@@ -84,12 +99,20 @@ function App() {
         notes={notes} 
         activeNoteId={activeNoteId} 
         onSelectNote={(id) => {
-          setActiveNoteId(id);
-          setViewMode('editor');
+          if (id === 'settings') {
+            setViewMode('settings');
+            setActiveNoteId('settings');
+          } else {
+            setActiveNoteId(id);
+            setViewMode('editor');
+          }
         }} 
         onCreateNote={handleCreateNote} 
       />
-      {viewMode === 'editor' ? (
+      
+      {viewMode === 'settings' ? (
+        <SettingsView />
+      ) : viewMode === 'editor' ? (
         <EditorPane 
           note={activeNote} 
           onUpdateNote={handleUpdateNote} 
@@ -103,7 +126,9 @@ function App() {
           }}
         />
       )}
+      
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 }
