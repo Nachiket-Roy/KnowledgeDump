@@ -5,7 +5,7 @@ pub mod vectordb;
 
 use sqlx::SqlitePool;
 use lancedb::connection::Connection as LanceDbConnection;
-use tauri::State;
+use tauri::{State, Manager};
 use models::Note;
 
 #[tauri::command]
@@ -82,22 +82,51 @@ async fn delete_note(id: String, pool: State<'_, SqlitePool>) -> Result<(), Stri
 
 #[tauri::command]
 async fn upsert_vectors(
-    vectors: Vec<vectordb::ChunkVector>,
-    conn: State<'_, LanceDbConnection>,
+    _vectors: Vec<vectordb::ChunkVector>,
+    _conn: State<'_, LanceDbConnection>,
 ) -> Result<(), String> {
     Err("Not yet implemented".to_string())
 }
 
 #[tauri::command]
 async fn vector_search(
-    query_vector: Vec<f32>,
-    conn: State<'_, LanceDbConnection>,
+    _query_vector: Vec<f32>,
+    _conn: State<'_, LanceDbConnection>,
 ) -> Result<Vec<vectordb::SearchResult>, String> {
     Err("Not yet implemented".to_string())
 }
 
+#[tauri::command]
+async fn generate_gemini_description(prompt: String) -> Result<String, String> {
+    let api_key = std::env::var("GEMINI_API_KEY").map_err(|_| "GEMINI_API_KEY not set".to_string())?;
+    
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", api_key);
+    
+    let client = reqwest::Client::new();
+    let response = client.post(&url)
+        .json(&serde_json::json!({
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?;
+        
+    let res_json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    
+    if let Some(text) = res_json["candidates"][0]["content"]["parts"][0]["text"].as_str() {
+        Ok(text.to_string())
+    } else {
+        Err("Failed to parse Gemini response".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    dotenvy::dotenv().ok();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -120,7 +149,8 @@ pub fn run() {
             save_note,
             delete_note,
             upsert_vectors,
-            vector_search
+            vector_search,
+            generate_gemini_description
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
