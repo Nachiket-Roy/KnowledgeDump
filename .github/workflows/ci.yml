@@ -36,7 +36,7 @@ jobs:
         with:
           toolchain: stable
       - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@54e2af0a8339c0435fa1de94002eab349a2f15ef
         with:
           workspaces: ./src-tauri
       - name: Install Ubuntu dependencies
@@ -78,7 +78,7 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
       - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@54e2af0a8339c0435fa1de94002eab349a2f15ef
         with:
           workspaces: ./src-tauri
           

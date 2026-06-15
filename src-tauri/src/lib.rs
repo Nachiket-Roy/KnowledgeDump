@@ -97,8 +97,7 @@ async fn vector_search(
 }
 
 #[tauri::command]
-async fn generate_gemini_description(_prompt: String) -> Result<String, String> {
-    dotenvy::dotenv().ok();
+async fn generate_gemini_description(prompt: String) -> Result<String, String> {
     let api_key = std::env::var("GEMINI_API_KEY").map_err(|_| "GEMINI_API_KEY not set".to_string())?;
     
     let url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", api_key);
@@ -107,11 +106,13 @@ async fn generate_gemini_description(_prompt: String) -> Result<String, String> 
     let response = client.post(&url)
         .json(&serde_json::json!({
             "contents": [{
-                "parts": [{"text": _prompt}]
+                "parts": [{"text": prompt}]
             }]
         }))
         .send()
         .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
         .map_err(|e| e.to_string())?;
         
     let res_json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
@@ -125,6 +126,7 @@ async fn generate_gemini_description(_prompt: String) -> Result<String, String> 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    dotenvy::dotenv().ok();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
