@@ -28,6 +28,8 @@ jobs:
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@a54c7afa936fefeb4456b2dd8068152669aa8203
+        with:
+          toolchain: stable
       - name: Install Ubuntu dependencies
         run: |
           sudo apt-get update
@@ -63,6 +65,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@a54c7afa936fefeb4456b2dd8068152669aa8203
         with:
+          toolchain: stable
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
           
       - name: Install Ubuntu dependencies
