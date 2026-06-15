@@ -7,7 +7,12 @@ Query: "${query}"
 Text: "${chunkContent}"`;
 
   try {
-    const description = await invoke<string>('generate_gemini_description', { prompt });
+    const description = await Promise.race([
+      invoke<string>('generate_gemini_description', { prompt }),
+      new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini invoke timeout')), 5000)
+      ),
+    ]);
     if (description) return description;
   } catch (error) {
     console.warn('Gemini API failed or key missing, falling back to local Ollama', error);
