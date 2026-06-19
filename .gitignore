@@ -48,3 +48,6 @@ plan/
 .vscode/
 development/
 .protoc/
+test-results/
+playwright/
+playwright-report/
