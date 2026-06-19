@@ -40,3 +40,26 @@
     scrollbar-color: var(--color-theme-border) var(--color-theme-sidebar);
   }
 }
+
+
+@media print {
+  @page { margin: 0; }
+  body { padding: 1.5cm; }
+  
+  /* Fix print white split and colors */
+  body, .cm-editor {
+    background-color: white !important;
+  }
+  .cm-content {
+    color: black !important;
+  }
+  .cm-gutters {
+    display: none !important;
+  }
+  
+  /* Let CodeMirror expand fully for printing */
+  .cm-editor, .cm-scroller {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

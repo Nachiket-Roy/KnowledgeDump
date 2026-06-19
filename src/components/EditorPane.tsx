@@ -7,8 +7,10 @@ import { useState, useEffect } from 'react';
 import * as React from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { extractTags, generateTitle } from '../lib/ai';
-import { Bold, Italic, List, Quote, Download, FileText, Code, PenTool, X } from 'lucide-react';
-import { Excalidraw } from '@excalidraw/excalidraw';
+import { Bold, Italic, List, Quote, Download, FileText, Code, PenTool, X, Image as ImageIcon } from 'lucide-react';
+import { DrawPad, Shape } from './DrawPad';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 
 interface EditorPaneProps {
   note: Note | null;
@@ -27,8 +29,8 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
   const [isTitling, setIsTitling] = useState(false);
   const [showLineNumbers, setShowLineNumbers] = useState(true);
   const [autoTitleEnabled, setAutoTitleEnabled] = useState(false);
-  const [showExcalidraw, setShowExcalidraw] = useState(false);
-  const [excalidrawInitialData, setExcalidrawInitialData] = useState<any>(null);
+  const [drawMode, setDrawMode] = useState(false);
+  const [drawingData, setDrawingData] = useState<Shape[]>([]);
   const [drawingLoaded, setDrawingLoaded] = useState(false);
   const contentRef = React.useRef(content);
   const saveTimerRef = React.useRef<any>(null);
@@ -57,12 +59,17 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       try {
         const data = await invoke<string | null>('get_drawing', { noteId: note.id });
         if (data && isMounted) {
-          setExcalidrawInitialData(JSON.parse(data));
+          try {
+            setDrawingData(JSON.parse(data));
+          } catch(e) {
+            setDrawingData([]);
+          }
         } else {
-          setExcalidrawInitialData(null);
+          setDrawingData([]);
         }
       } catch (e) {
         console.error('Failed to load drawing', e);
+        setDrawingData([]);
       } finally {
         if (isMounted) setDrawingLoaded(true);
       }
@@ -186,12 +193,12 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     view.focus();
   };
 
-  const handleExcalidrawChange = (elements: readonly any[], appState: any, files: any) => {
+  const handleSaveDrawing = (shapes: Shape[]) => {
     if (!note) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       try {
-        const data = JSON.stringify({ elements, appState, files });
+        const data = JSON.stringify(shapes);
         await invoke('save_drawing', { noteId: note.id, data });
       } catch (e) {
         console.error('Failed to save drawing', e);
@@ -206,9 +213,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-  const handleExportDoc = () => {
-    const element = document.createElement('a');
-    // Using simple HTML-in-DOC format which Word reads perfectly
+  const handleExportDoc = async () => {
     const htmlContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head><title>${escapeHtml(title)}</title></head>
@@ -218,12 +223,17 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       </body>
       </html>
     `;
-    element.setAttribute('href', 'data:application/msword;charset=utf-8,' + encodeURIComponent(htmlContent));
-    element.setAttribute('download', `${title || 'note'}.doc`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    try {
+      const filePath = await save({
+        filters: [{ name: 'Word Document', extensions: ['doc'] }],
+        defaultPath: `${title || 'note'}.doc`
+      });
+      if (filePath) {
+        await writeTextFile(filePath, htmlContent);
+      }
+    } catch (e) {
+      console.error('Failed to export doc:', e);
+    }
   };
 
   if (!note) {
@@ -236,7 +246,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
 
   return (
     <div className="flex-1 flex flex-col bg-theme-bg h-screen">
-      <div className="p-4 border-b border-theme-border flex flex-col bg-theme-bg gap-2">
+      <div className="p-4 border-b border-theme-border flex flex-col bg-theme-bg gap-2 print:hidden">
         <div className="flex justify-between items-center">
           <div className="flex items-center flex-1">
             <input 
@@ -255,6 +265,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
               <button onClick={() => insertMarkdown('- ')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="List"><List size={16}/></button>
               <button onClick={() => insertMarkdown('> ')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Quote"><Quote size={16}/></button>
               <button onClick={() => insertMarkdown('```\n', '\n```')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Code Block"><Code size={16}/></button>
+              <button onClick={() => insertMarkdown('![Image](', ')')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Insert Image"><ImageIcon size={16}/></button>
             </div>
             <button onClick={() => window.print()} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors" title="Print to PDF">
               <FileText size={14}/> PDF
@@ -287,58 +298,36 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       </div>
       <div className="flex-1 flex overflow-hidden print:bg-white print:text-black relative">
         <div className="absolute inset-0 overflow-auto">
-          <CodeMirror
-            value={content}
-            height="100%"
-            theme={oneDark}
-            basicSetup={{ lineNumbers: showLineNumbers }}
-            extensions={[markdown({ base: markdownLanguage })]}
-            onChange={handleContentChange}
-            onCreateEditor={(view) => { viewRef.current = view; }}
-            className="text-base h-full"
-          />
-        </div>
-        
-        {drawingLoaded && (
-          <div 
-            className={`absolute inset-0 z-40 ${showExcalidraw ? 'pointer-events-auto' : 'pointer-events-none'}`}
-          >
-            <Excalidraw 
-              theme="dark" 
-              zenModeEnabled={true}
-              viewModeEnabled={!showExcalidraw}
-              initialData={{
-                ...excalidrawInitialData,
-                appState: {
-                  ...excalidrawInitialData?.appState,
-                  viewBackgroundColor: "transparent"
-                }
-              }}
-              onChange={handleExcalidrawChange}
-              UIOptions={{
-                canvasActions: {
-                  changeViewBackgroundColor: false,
-                  clearCanvas: false,
-                  export: false,
-                  loadScene: false,
-                  saveAsImage: false,
-                  saveToActiveFile: false,
-                  toggleTheme: false
-                }
-              }}
+          <div className="relative min-h-full">
+            <CodeMirror
+              value={content}
+              height="100%"
+              theme={oneDark}
+              basicSetup={{ lineNumbers: showLineNumbers }}
+              extensions={[markdown({ base: markdownLanguage }), EditorView.lineWrapping]}
+              onChange={handleContentChange}
+              onCreateEditor={(view) => { viewRef.current = view; }}
+              className="text-base h-full"
             />
+            {drawingLoaded && (
+              <DrawPad 
+                drawMode={drawMode} 
+                initialData={drawingData} 
+                onSave={handleSaveDrawing} 
+              />
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Floating Toolbar */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center bg-theme-sidebar/90 backdrop-blur-md border border-theme-border rounded-full shadow-2xl z-50">
+        {/* Floating Toolbar Toggle */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center bg-theme-sidebar/90 backdrop-blur-md border border-theme-border rounded-full shadow-2xl z-50 print:hidden">
           <button 
-            onClick={() => setShowExcalidraw(!showExcalidraw)} 
-            className={`p-3 rounded-full transition-colors flex items-center gap-2 font-medium ${showExcalidraw ? 'bg-theme-accent text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-            title={showExcalidraw ? "Close Drawing Mode" : "Open Drawing Mode"}
+            onClick={() => setDrawMode(!drawMode)} 
+            className={`p-3 rounded-full transition-colors flex items-center gap-2 font-medium ${drawMode ? 'bg-theme-accent text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+            title={drawMode ? "Close Drawing Mode" : "Open Drawing Mode"}
           >
-            {showExcalidraw ? <X size={20} /> : <PenTool size={20} />}
-            {showExcalidraw && <span className="pr-2">Close Canvas</span>}
+            {drawMode ? <X size={20} /> : <PenTool size={20} />}
+            {drawMode && <span className="pr-2">Close Canvas</span>}
           </button>
         </div>
       </div>

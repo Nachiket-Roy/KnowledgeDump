@@ -21,9 +21,10 @@ function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'editor' | 'graph' | 'settings'>('editor');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    loadNotes();
+    loadNotes(true);
     checkOnboarding();
     
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -51,10 +52,17 @@ function App() {
     }
   };
 
-  const loadNotes = async () => {
+  const loadNotes = async (initialLoad: boolean = false) => {
     try {
       const fetchedNotes = await invoke<Note[]>('list_notes');
       setNotes(fetchedNotes);
+      
+      if (initialLoad && fetchedNotes.length > 0) {
+        // Backend returns notes ordered by updated_at DESC, so [0] is the most recent
+        const lastNoteId = fetchedNotes[0].id;
+        setActiveNoteId(lastNoteId);
+        setOpenNoteIds([lastNoteId]);
+      }
     } catch (e) {
       console.error('Failed to load notes:', e);
     }
@@ -126,26 +134,30 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-theme-bg">
-      <Sidebar 
-        notes={notes} 
-        activeNoteId={activeNoteId} 
-        onSelectNote={(id) => {
-          if (id === 'settings') {
-            setViewMode('settings');
-            setActiveNoteId('settings');
-          } else {
-            setOpenNoteIds(prev => prev.includes(id) ? prev : [...prev, id]);
-            setActiveNoteId(id);
-            setViewMode('editor');
-          }
-        }} 
-        onCreateNote={handleCreateNote} 
-      />
+      {isSidebarOpen && (
+        <Sidebar 
+          notes={notes} 
+          activeNoteId={activeNoteId} 
+          onSelectNote={(id) => {
+            if (id === 'settings') {
+              setViewMode('settings');
+              setActiveNoteId('settings');
+            } else {
+              setOpenNoteIds(prev => prev.includes(id) ? prev : [...prev, id]);
+              setActiveNoteId(id);
+              setViewMode('editor');
+            }
+          }} 
+          onCreateNote={handleCreateNote} 
+          onDeleteNote={handleDeleteNote}
+        />
+      )}
       
       <div className="flex-1 flex flex-col min-w-0">
         <TabBar 
           openNotes={openNoteIds.map(id => notes.find(n => n.id === id)).filter(Boolean) as Note[]}
           activeNoteId={activeNoteId}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onSelectNote={(id) => {
             setActiveNoteId(id);
             setViewMode('editor');

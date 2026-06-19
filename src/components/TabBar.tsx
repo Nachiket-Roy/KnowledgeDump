@@ -1,18 +1,24 @@
 import { Note } from '../types';
-import { X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 interface TabBarProps {
   openNotes: Note[];
   activeNoteId: string | null;
   onSelectNote: (id: string) => void;
   onCloseNote: (id: string, e: React.MouseEvent) => void;
+  onToggleSidebar: () => void;
 }
 
-export function TabBar({ openNotes, activeNoteId, onSelectNote, onCloseNote }: TabBarProps) {
-  if (openNotes.length === 0) return null;
-
+export function TabBar({ openNotes, activeNoteId, onSelectNote, onCloseNote, onToggleSidebar }: TabBarProps) {
   return (
-    <div role="tablist" aria-label="Open Notes" className="flex bg-theme-sidebar border-b border-theme-border overflow-x-auto overflow-y-hidden h-10">
+    <div role="tablist" aria-label="Open Notes" className="flex bg-theme-sidebar border-b border-theme-border overflow-x-auto overflow-y-hidden h-10 print:hidden">
+      <button 
+        onClick={onToggleSidebar} 
+        aria-label="Toggle Sidebar"
+        className="px-3 border-r border-theme-border text-gray-400 hover:text-white hover:bg-theme-bg/50 transition-colors shrink-0"
+      >
+        <Menu size={18} />
+      </button>
       {openNotes.map(note => {
         const isActive = note.id === activeNoteId;
         return (

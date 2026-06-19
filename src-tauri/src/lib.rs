@@ -313,6 +313,8 @@ async fn get_graph_data(pool: State<'_, SqlitePool>) -> Result<models::GraphData
 pub fn run() {
     dotenvy::dotenv().ok();
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let handle = app.handle().clone();
