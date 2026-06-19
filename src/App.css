@@ -47,6 +47,9 @@
     background-color: transparent !important;
     border-right: 1px solid var(--color-theme-border) !important;
   }
+  .cm-activeLine, .cm-activeLineGutter {
+    background-color: transparent !important;
+  }
 }
 
 
