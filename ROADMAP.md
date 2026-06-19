@@ -11,6 +11,7 @@ These are UI-focused or straightforward tasks perfect for first-time contributor
 
 - [ ] **Onboarding UI Overhaul**: The initial Gemini API key popup is a bit intrusive. Redesign it into a non-blocking banner or integrate it directly into the Settings menu with a smoother empty-state prompt.
 - [ ] **Gemini Integration Testing**: Add automated tests to ensure the Gemini AI prompts and logic are fully working and gracefully degrade when offline.
+- [ ] **GitHub Pages Landing Page**: Create a simple HTML/CSS landing page for the project to showcase features (Semantic Search, Knowledge Graph, DrawPad) and provide a professional download page.
 - [ ] **Custom Themes**: Add a theme switcher (e.g., Light Mode, Sepia, Dracula) using TailwindCSS variables.
 - [ ] **Font Selection**: Allow users to change the editor font (e.g., Fira Code, Inter, Roboto).
 - [ ] **Word Count & Reading Time**: Add a small status bar at the bottom of the editor showing the current word count and estimated reading time.
