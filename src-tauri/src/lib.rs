@@ -141,7 +141,7 @@ async fn generate_gemini_description(prompt: String, _pool: State<'_, SqlitePool
         .unwrap_or_default();
 
     if api_key.is_empty() {
-        return Err("GEMINI_API_KEY not set".to_string());
+        return Err("Gemini API key not configured".to_string());
     }
     
     let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
