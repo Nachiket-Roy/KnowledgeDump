@@ -39,6 +39,14 @@
     scrollbar-width: thin;
     scrollbar-color: var(--color-theme-border) var(--color-theme-sidebar);
   }
+  /* Override CodeMirror oneDark bluish background */
+  .cm-editor {
+    background-color: transparent !important;
+  }
+  .cm-gutters {
+    background-color: transparent !important;
+    border-right: 1px solid var(--color-theme-border) !important;
+  }
 }
 
 
