@@ -29,6 +29,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
   const [autoTitleEnabled, setAutoTitleEnabled] = useState(false);
   const [showExcalidraw, setShowExcalidraw] = useState(false);
   const [excalidrawInitialData, setExcalidrawInitialData] = useState<any>(null);
+  const [drawingLoaded, setDrawingLoaded] = useState(false);
   const contentRef = React.useRef(content);
   const saveTimerRef = React.useRef<any>(null);
   
@@ -52,6 +53,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
 
     const fetchDrawing = async () => {
       if (!note) return;
+      setDrawingLoaded(false);
       try {
         const data = await invoke<string | null>('get_drawing', { noteId: note.id });
         if (data && isMounted) {
@@ -61,6 +63,8 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
         }
       } catch (e) {
         console.error('Failed to load drawing', e);
+      } finally {
+        if (isMounted) setDrawingLoaded(true);
       }
     };
     fetchDrawing();
@@ -282,7 +286,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
         </div>
       </div>
       <div className="flex-1 flex overflow-hidden print:bg-white print:text-black relative">
-        <div className={`flex-1 overflow-auto h-full ${showExcalidraw ? 'border-r border-theme-border' : ''}`}>
+        <div className="absolute inset-0 overflow-auto">
           <CodeMirror
             value={content}
             height="100%"
@@ -295,11 +299,21 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
           />
         </div>
         
-        {showExcalidraw && (
-          <div className="flex-1 h-full bg-theme-bg relative">
+        {drawingLoaded && (
+          <div 
+            className={`absolute inset-0 z-40 ${showExcalidraw ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          >
             <Excalidraw 
               theme="dark" 
-              initialData={excalidrawInitialData}
+              zenModeEnabled={true}
+              viewModeEnabled={!showExcalidraw}
+              initialData={{
+                ...excalidrawInitialData,
+                appState: {
+                  ...excalidrawInitialData?.appState,
+                  viewBackgroundColor: "transparent"
+                }
+              }}
               onChange={handleExcalidrawChange}
               UIOptions={{
                 canvasActions: {
