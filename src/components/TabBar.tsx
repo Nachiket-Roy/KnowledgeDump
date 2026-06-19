@@ -11,7 +11,7 @@ interface TabBarProps {
 
 export function TabBar({ openNotes, activeNoteId, onSelectNote, onCloseNote, onToggleSidebar }: TabBarProps) {
   return (
-    <div role="tablist" aria-label="Open Notes" className="flex bg-theme-sidebar border-b border-theme-border overflow-x-auto overflow-y-hidden h-10 print:hidden">
+    <div className="flex bg-theme-sidebar border-b border-theme-border overflow-x-auto overflow-y-hidden h-10 print:hidden">
       <button 
         onClick={onToggleSidebar} 
         aria-label="Toggle Sidebar"
@@ -19,7 +19,8 @@ export function TabBar({ openNotes, activeNoteId, onSelectNote, onCloseNote, onT
       >
         <Menu size={18} />
       </button>
-      {openNotes.map(note => {
+      <div role="tablist" aria-label="Open Notes" className="flex">
+        {openNotes.map(note => {
         const isActive = note.id === activeNoteId;
         return (
           <div
@@ -58,6 +59,7 @@ export function TabBar({ openNotes, activeNoteId, onSelectNote, onCloseNote, onT
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

@@ -107,7 +107,7 @@ export function DrawPad({ drawMode, initialData, onSave }: DrawPadProps) {
           ctx.lineTo(shape.x2, shape.y2);
           ctx.stroke();
           break;
-        case 'arr':
+        case 'arr': {
           ctx.moveTo(shape.x1, shape.y1);
           ctx.lineTo(shape.x2, shape.y2);
           ctx.stroke();
@@ -122,6 +122,7 @@ export function DrawPad({ drawMode, initialData, onSave }: DrawPadProps) {
           ctx.fillStyle = shape.color;
           ctx.fill();
           break;
+        }
         case 'rect':
           if (shape.fill) ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
           ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
@@ -318,7 +319,7 @@ export function DrawPad({ drawMode, initialData, onSave }: DrawPadProps) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
-      // White background for PNG
+      // Dark background for PNG
       const tmpCanvas = document.createElement('canvas');
       tmpCanvas.width = canvas.width;
       tmpCanvas.height = canvas.height;

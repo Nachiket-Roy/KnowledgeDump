@@ -33,7 +33,6 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
   const [drawingData, setDrawingData] = useState<Shape[]>([]);
   const [drawingLoaded, setDrawingLoaded] = useState(false);
   const contentRef = React.useRef(content);
-  const saveTimerRef = React.useRef<any>(null);
   
   useEffect(() => {
     contentRef.current = content;
@@ -193,17 +192,14 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     view.focus();
   };
 
-  const handleSaveDrawing = (shapes: Shape[]) => {
+  const handleSaveDrawing = async (shapes: Shape[]) => {
     if (!note) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      try {
-        const data = JSON.stringify(shapes);
-        await invoke('save_drawing', { noteId: note.id, data });
-      } catch (e) {
-        console.error('Failed to save drawing', e);
-      }
-    }, 1000);
+    try {
+      const data = JSON.stringify(shapes);
+      await invoke('save_drawing', { noteId: note.id, data });
+    } catch (e) {
+      console.error('Failed to save drawing', e);
+    }
   };
 
   const escapeHtml = (unsafe: string) => unsafe
@@ -230,6 +226,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       });
       if (filePath) {
         await writeTextFile(filePath, htmlContent);
+        alert('Saved successfully!');
       }
     } catch (e) {
       console.error('Failed to export doc:', e);

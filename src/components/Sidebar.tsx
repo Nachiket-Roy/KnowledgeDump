@@ -46,7 +46,7 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote, onDel
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
-              className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+              className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all shrink-0"
               title="Delete Note"
             >
               <Trash2 className="w-4 h-4" />
