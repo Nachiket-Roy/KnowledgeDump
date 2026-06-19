@@ -12,7 +12,7 @@ export function TabBar({ openNotes, activeNoteId, onSelectNote, onCloseNote }: T
   if (openNotes.length === 0) return null;
 
   return (
-    <div role="tablist" aria-label="Open Notes" className="flex bg-theme-sidebar border-b border-theme-border overflow-x-auto overflow-y-hidden h-10 scrollbar-hide">
+    <div role="tablist" aria-label="Open Notes" className="flex bg-theme-sidebar border-b border-theme-border overflow-x-auto overflow-y-hidden h-10">
       {openNotes.map(note => {
         const isActive = note.id === activeNoteId;
         return (
@@ -20,12 +20,19 @@ export function TabBar({ openNotes, activeNoteId, onSelectNote, onCloseNote }: T
             key={note.id}
             role="tab"
             aria-selected={isActive}
-            tabIndex={0}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onSelectNote(note.id)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 onSelectNote(note.id);
+              } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                const currentIndex = openNotes.findIndex(n => n.id === note.id);
+                const nextIndex = e.key === 'ArrowLeft'
+                  ? (currentIndex - 1 + openNotes.length) % openNotes.length
+                  : (currentIndex + 1) % openNotes.length;
+                onSelectNote(openNotes[nextIndex].id);
               }
             }}
             className={`
