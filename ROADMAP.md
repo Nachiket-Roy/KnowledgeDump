@@ -2,13 +2,15 @@
 
 Welcome to the future of KnowledgeDump! This document outlines our planned features, architectural changes, and areas where we're actively seeking community contributions.
 
-If you are participating in open-source programs like **GSSoC**, this is the perfect place to find meaningful issues to work on. Please comment on the corresponding GitHub Issue before starting work to get assigned!
+Please comment on the corresponding GitHub Issue before starting work to get assigned!
 
 ---
 
 ## 🟢 Good First Issues (Beginner Friendly)
 These are UI-focused or straightforward tasks perfect for first-time contributors.
 
+- [ ] **Onboarding UI Overhaul**: The initial Gemini API key popup is a bit intrusive. Redesign it into a non-blocking banner or integrate it directly into the Settings menu with a smoother empty-state prompt.
+- [ ] **Gemini Integration Testing**: Add automated tests to ensure the Gemini AI prompts and logic are fully working and gracefully degrade when offline.
 - [ ] **Custom Themes**: Add a theme switcher (e.g., Light Mode, Sepia, Dracula) using TailwindCSS variables.
 - [ ] **Font Selection**: Allow users to change the editor font (e.g., Fira Code, Inter, Roboto).
 - [ ] **Word Count & Reading Time**: Add a small status bar at the bottom of the editor showing the current word count and estimated reading time.
