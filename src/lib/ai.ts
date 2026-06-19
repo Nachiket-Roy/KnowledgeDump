@@ -87,3 +87,37 @@ Text: "${content}"`;
 
   return [];
 }
+
+export async function generateTitle(content: string): Promise<string> {
+  if (content.trim().length < 10) return "New Note";
+
+  const prompt = `Generate a very short, 2 to 4 word title for the following text. Return ONLY the title, with no quotes, no markdown, and no explanation.
+Text: "${content.substring(0, 1000)}"`;
+
+  try {
+    const title = await Promise.race([
+      invoke<string>('generate_gemini_description', { prompt }),
+      new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini invoke timeout')), 5000)
+      ),
+    ]);
+    if (title) return title.trim().replace(/^"|"$/g, '');
+  } catch (error) {
+    console.warn('Gemini title generation failed, falling back to local Ollama', error);
+  }
+
+  try {
+    const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
+    const response = await ollama.chat({
+      model: 'llama3.2',
+      messages: [{ role: 'user', content: prompt }],
+    });
+    if (response.message?.content) {
+      return response.message.content.trim().replace(/^"|"$/g, '');
+    }
+  } catch (error) {
+    console.error('Ollama fallback failed for title.', error);
+  }
+
+  return "New Note";
+}

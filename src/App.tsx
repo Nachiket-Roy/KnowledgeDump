@@ -7,6 +7,7 @@ import { SettingsView } from './components/SettingsView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { Note } from './types';
 import { SearchOverlay } from './components/SearchOverlay';
+import { TabBar } from './components/TabBar';
 import { upsertNoteVectors } from './lib/vectorSync';
 import './App.css';
 
@@ -15,6 +16,7 @@ const vectorSyncTimers = new Map<string, any>();
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [openNoteIds, setOpenNoteIds] = useState<string[]>([]);
   const [highlightSnippet, setHighlightSnippet] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'editor' | 'graph' | 'settings'>('editor');
@@ -78,6 +80,7 @@ function App() {
         content: ''
       });
       await loadNotes();
+      setOpenNoteIds(prev => [...prev, newId]);
       setActiveNoteId(newId);
       setViewMode('editor');
     } catch (e) {
@@ -104,9 +107,15 @@ function App() {
   const handleDeleteNote = async (id: string) => {
     try {
       await invoke('delete_note', { id });
-      if (activeNoteId === id) {
-        setActiveNoteId(null);
-      }
+      
+      setOpenNoteIds(prev => {
+        const next = prev.filter(nId => nId !== id);
+        if (activeNoteId === id) {
+          setActiveNoteId(next.length > 0 ? next[next.length - 1] : null);
+        }
+        return next;
+      });
+      
       await loadNotes();
     } catch (e) {
       console.error('Failed to delete note:', e);
@@ -125,6 +134,7 @@ function App() {
             setViewMode('settings');
             setActiveNoteId('settings');
           } else {
+            setOpenNoteIds(prev => prev.includes(id) ? prev : [...prev, id]);
             setActiveNoteId(id);
             setViewMode('editor');
           }
@@ -132,9 +142,29 @@ function App() {
         onCreateNote={handleCreateNote} 
       />
       
-      {viewMode === 'settings' ? (
-        <SettingsView />
-      ) : viewMode === 'editor' ? (
+      <div className="flex-1 flex flex-col min-w-0">
+        <TabBar 
+          openNotes={openNoteIds.map(id => notes.find(n => n.id === id)).filter(Boolean) as Note[]}
+          activeNoteId={activeNoteId}
+          onSelectNote={(id) => {
+            setActiveNoteId(id);
+            setViewMode('editor');
+          }}
+          onCloseNote={(id, e) => {
+            e.stopPropagation();
+            setOpenNoteIds(prev => {
+              const next = prev.filter(n => n !== id);
+              if (activeNoteId === id) {
+                setActiveNoteId(next.length > 0 ? next[next.length - 1] : null);
+              }
+              return next;
+            });
+          }}
+        />
+
+        {viewMode === 'settings' ? (
+          <SettingsView />
+        ) : viewMode === 'editor' ? (
         <EditorPane 
           note={activeNote} 
           onUpdateNote={handleUpdateNote} 
@@ -150,11 +180,13 @@ function App() {
           }}
         />
       )}
-      
+      </div>
+
       <SearchOverlay 
         isOpen={isSearchOpen} 
         onClose={() => setIsSearchOpen(false)} 
         onSelectNote={(id, snippet) => {
+          setOpenNoteIds(prev => prev.includes(id) ? prev : [...prev, id]);
           setActiveNoteId(id);
           setHighlightSnippet(snippet || null);
           setViewMode('editor');

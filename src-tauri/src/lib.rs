@@ -136,15 +136,12 @@ async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) ->
 
 #[tauri::command]
 async fn generate_gemini_description(prompt: String, _pool: State<'_, SqlitePool>) -> Result<String, String> {
-    let api_key = match keyring::Entry::new("KnowledgeDump", "gemini_api_key")
-        .and_then(|e| e.get_password()) 
-    {
-        Ok(k) => k,
-        Err(_) => std::env::var("GEMINI_API_KEY").unwrap_or_default(),
-    };
+    let api_key = keyring::Entry::new("KnowledgeDump", "gemini_api_key")
+        .and_then(|e| e.get_password())
+        .unwrap_or_default();
 
     if api_key.is_empty() {
-        return Err("GEMINI_API_KEY not set".to_string());
+        return Err("Gemini API key not configured".to_string());
     }
     
     let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
@@ -174,6 +171,28 @@ async fn generate_gemini_description(prompt: String, _pool: State<'_, SqlitePool
     } else {
         Err("Failed to parse Gemini response".to_string())
     }
+}
+
+#[tauri::command]
+async fn save_drawing(note_id: String, data: String, pool: State<'_, SqlitePool>) -> Result<(), String> {
+    sqlx::query("INSERT INTO note_drawings (note_id, data) VALUES (?, ?) ON CONFLICT(note_id) DO UPDATE SET data = excluded.data")
+        .bind(note_id)
+        .bind(data)
+        .execute(&*pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_drawing(note_id: String, pool: State<'_, SqlitePool>) -> Result<Option<String>, String> {
+    let row: Option<(String,)> = sqlx::query_as("SELECT data FROM note_drawings WHERE note_id = ?")
+        .bind(note_id)
+        .fetch_optional(&*pool)
+        .await
+        .map_err(|e| e.to_string())?;
+        
+    Ok(row.map(|(data,)| data))
 }
 
 #[tauri::command]
@@ -320,6 +339,8 @@ pub fn run() {
             add_tags_to_note,
             get_note_tags,
             get_graph_data,
+            save_drawing,
+            get_drawing,
             get_setting,
             set_setting
         ])

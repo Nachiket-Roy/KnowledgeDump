@@ -24,3 +24,9 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS note_drawings (
+    note_id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
+);
