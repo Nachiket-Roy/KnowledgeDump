@@ -26,37 +26,39 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote, onDel
   const [showTagFilter, setShowTagFilter] = useState(false);
 
   useEffect(() => {
+    let isCancelled = false;
+    const loadTags = async () => {
+      try {
+        const tags = await invoke<TagWithCount[]>('list_all_tags');
+        if (!isCancelled) setAllTags(tags);
+      } catch (e) {
+        console.error('Failed to load tags:', e);
+      }
+    };
     loadTags();
+    return () => { isCancelled = true; };
   }, [notes]);
 
   useEffect(() => {
+    let isCancelled = false;
     if (selectedTagIds.length > 0) {
+      const applyTagFilter = async () => {
+        try {
+          const result = await invoke<Note[]>('list_notes_by_tags', {
+            tagIds: selectedTagIds,
+            mode: filterMode,
+          });
+          if (!isCancelled) setFilteredNotes(result);
+        } catch (e) {
+          console.error('Failed to filter notes by tags:', e);
+        }
+      };
       applyTagFilter();
     } else {
       setFilteredNotes(null);
     }
-  }, [selectedTagIds, filterMode]);
-
-  const loadTags = async () => {
-    try {
-      const tags = await invoke<TagWithCount[]>('list_all_tags');
-      setAllTags(tags);
-    } catch (e) {
-      console.error('Failed to load tags:', e);
-    }
-  };
-
-  const applyTagFilter = async () => {
-    try {
-      const result = await invoke<Note[]>('list_notes_by_tags', {
-        tagIds: selectedTagIds,
-        mode: filterMode,
-      });
-      setFilteredNotes(result);
-    } catch (e) {
-      console.error('Failed to filter notes by tags:', e);
-    }
-  };
+    return () => { isCancelled = true; };
+  }, [selectedTagIds, filterMode, notes]);
 
   const toggleTag = (id: string) => {
     setSelectedTagIds(prev =>

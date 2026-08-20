@@ -231,9 +231,10 @@ async fn list_notes_by_tags(
         return list_notes(pool).await;
     }
 
+    let norm_mode = mode.trim().to_lowercase();
     let placeholders = tag_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
 
-    let sql = if mode == "and" {
+    let sql = if norm_mode == "and" {
         format!(
             "SELECT n.id, n.title, n.content, n.created_at, n.updated_at \
              FROM notes n JOIN note_tags nt ON n.id = nt.note_id \
@@ -257,7 +258,7 @@ async fn list_notes_by_tags(
     for tag_id in &tag_ids {
         query = query.bind(tag_id);
     }
-    if mode == "and" {
+    if norm_mode == "and" {
         query = query.bind(tag_ids.len() as i64);
     }
 
@@ -269,7 +270,7 @@ async fn copy_image_to_appdata(
     source_path: String,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
-    let source = std::path::Path::new(&source_path);
+    let source = std::path::PathBuf::from(&source_path);
     if !source.exists() || !source.is_file() {
         return Err("Invalid source file path".to_string());
     }
@@ -280,24 +281,32 @@ async fn copy_image_to_appdata(
         return Err("Unsupported image file format".to_string());
     }
 
+    let metadata = std::fs::metadata(&source).map_err(|e| e.to_string())?;
+    if metadata.len() > 50 * 1024 * 1024 {
+        return Err("Image file size exceeds 50 MB limit".to_string());
+    }
+
     let data_dir = app_handle
         .path()
         .app_local_data_dir()
         .map_err(|e| e.to_string())?;
 
     let images_dir = data_dir.join("images");
-    std::fs::create_dir_all(&images_dir).map_err(|e| e.to_string())?;
-
     let filename = format!(
         "{}-{}",
         uuid::Uuid::new_v4(),
         source.file_name().unwrap_or_default().to_string_lossy()
     );
-
     let dest = images_dir.join(&filename);
-    std::fs::copy(source, &dest).map_err(|e| e.to_string())?;
 
-    Ok(dest.to_string_lossy().to_string())
+    tokio::task::spawn_blocking(move || {
+        std::fs::create_dir_all(&images_dir)?;
+        std::fs::copy(&source, &dest)?;
+        Ok::<_, std::io::Error>(dest.to_string_lossy().to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -372,7 +381,7 @@ pub fn run() {
 
                     if cleaned.is_none() {
                         if let Ok(entry) = keyring::Entry::new("KnowledgeDump", "gemini_api_key") {
-                            let _ = entry.delete_credential();
+                            let _ = entry.delete_password();
                         }
                         let _ = sqlx::query("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
                             .bind("gemini_key_cleaned")

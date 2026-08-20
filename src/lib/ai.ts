@@ -57,11 +57,12 @@ export async function detectLocalProviders(customHost?: string): Promise<LocalPr
 
     try {
       const resp = await fetch(provider.detectUrl, { signal: controller.signal });
-      clearTimeout(timer);
       if (!resp.ok) {
+        clearTimeout(timer);
         return { ...provider, models: [], status: 'offline' };
       }
       const data = await resp.json();
+      clearTimeout(timer);
       const models = parseModels(provider.type, data);
       return { ...provider, models, status: 'online' };
     } catch {
@@ -90,57 +91,79 @@ function parseModels(type: 'ollama' | 'openai', data: any): string[] {
   return [];
 }
 
-export async function getAiConfig(): Promise<{ host: string; model: string; providerName: string }> {
+export async function getAiConfig(): Promise<{ host: string; model: string; providerName: string; providerType: 'ollama' | 'openai' }> {
   try {
-    const host = await invoke<string | null>('get_setting', { key: 'ai_provider_host' });
-    const model = await invoke<string | null>('get_setting', { key: 'ai_provider_model' });
-    const providerName = await invoke<string | null>('get_setting', { key: 'ai_provider_name' });
+    const [host, model, providerName, providerType] = await Promise.all([
+      invoke<string | null>('get_setting', { key: 'ai_provider_host' }),
+      invoke<string | null>('get_setting', { key: 'ai_provider_model' }),
+      invoke<string | null>('get_setting', { key: 'ai_provider_name' }),
+      invoke<string | null>('get_setting', { key: 'ai_provider_type' }),
+    ]);
+
+    const finalHost = host || 'http://127.0.0.1:11434';
+    const finalType = (providerType as 'ollama' | 'openai') || (finalHost.includes('11434') || (providerName || '').toLowerCase() === 'ollama' ? 'ollama' : 'openai');
 
     return {
-      host: host || 'http://127.0.0.1:11434',
+      host: finalHost,
       model: model || 'llama3.2',
       providerName: providerName || 'Ollama',
+      providerType: finalType,
     };
   } catch {
     return {
       host: 'http://127.0.0.1:11434',
       model: 'llama3.2',
       providerName: 'Ollama',
+      providerType: 'ollama',
     };
   }
 }
 
 export async function callLocalAi(prompt: string): Promise<string> {
-  const { host, model, providerName } = await getAiConfig();
-  const isOllama = providerName.toLowerCase() === 'ollama' || host.includes('11434');
+  const { host, model, providerType } = await getAiConfig();
+  const REQUEST_TIMEOUT_MS = 15000;
 
-  if (isOllama) {
+  if (providerType === 'ollama') {
     const ollama = new Ollama({ host });
-    const response = await ollama.chat({
+    const chatPromise = ollama.chat({
       model,
       messages: [{ role: 'user', content: prompt }],
     });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Ollama request timed out after 15s')), REQUEST_TIMEOUT_MS)
+    );
+
+    const response = await Promise.race([chatPromise, timeoutPromise]);
     if (response.message?.content) {
       return response.message.content;
     }
     throw new Error('Empty response from Ollama');
   } else {
-    const resp = await fetch(`${host.replace(/\/$/, '')}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-      }),
-    });
-    if (!resp.ok) {
-      throw new Error(`Local AI request failed: ${resp.statusText}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const resp = await fetch(`${host.replace(/\/$/, '')}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2,
+        }),
+        signal: controller.signal,
+      });
+      if (!resp.ok) {
+        throw new Error(`Local AI request failed: ${resp.statusText}`);
+      }
+      const data = await resp.json();
+      clearTimeout(timer);
+      const content = data.choices?.[0]?.message?.content;
+      if (content) return content;
+      throw new Error('Empty response from OpenAI-compatible provider');
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
     }
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (content) return content;
-    throw new Error('Empty response from OpenAI-compatible provider');
   }
 }
 

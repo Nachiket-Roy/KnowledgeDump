@@ -259,7 +259,12 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
         defaultPath: `${title || 'note'}.md`
       });
       if (filePath) {
-        const mdContent = `# ${title}\n\n${content}`;
+        // Normalize asset protocol URLs to portable image references for external viewers
+        const portableContent = content.replace(
+          /!\[(.*?)\]\((?:asset:\/\/localhost|https:\/\/asset\.localhost|\/|[a-z]:).*?([^\/\\]+\.(?:png|jpg|jpeg|gif|webp|svg))\)/gi,
+          '![$1](images/$2)'
+        );
+        const mdContent = `# ${title}\n\n${portableContent}`;
         await writeTextFile(filePath, mdContent);
         alert('Saved successfully!');
       }

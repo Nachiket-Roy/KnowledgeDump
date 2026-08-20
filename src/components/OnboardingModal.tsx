@@ -11,6 +11,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [selectedProviderHost, setSelectedProviderHost] = useState<string>('http://127.0.0.1:11434');
   const [selectedModel, setSelectedModel] = useState<string>('llama3.2');
   const [isScanning, setIsScanning] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     scanProviders();
@@ -36,17 +37,21 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   };
 
   const handleFinish = async () => {
+    setSaveError(null);
     const chosenProvider = providers.find(p => p.host === selectedProviderHost);
     const providerName = chosenProvider ? chosenProvider.name : 'Ollama';
+    const providerType = chosenProvider ? chosenProvider.type : (selectedProviderHost.includes('11434') ? 'ollama' : 'openai');
     
     try {
       await invoke('set_setting', { key: 'ai_provider_name', value: providerName });
       await invoke('set_setting', { key: 'ai_provider_host', value: selectedProviderHost });
       await invoke('set_setting', { key: 'ai_provider_model', value: selectedModel || 'llama3.2' });
+      await invoke('set_setting', { key: 'ai_provider_type', value: providerType });
       await invoke('set_setting', { key: 'has_onboarded', value: 'true' });
       onComplete();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to save onboarding configuration:', e);
+      setSaveError('Failed to save configuration. You can skip to continue.');
     }
   };
 
@@ -91,6 +96,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               Local AI Provider Setup
             </label>
             <button
+              type="button"
               onClick={scanProviders}
               disabled={isScanning}
               className="text-xs px-2.5 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-200 disabled:opacity-50"
@@ -101,13 +107,15 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
           <div className="grid grid-cols-2 gap-2">
             {providers.map(p => (
-              <div
+              <button
                 key={p.host}
+                type="button"
+                aria-pressed={selectedProviderHost === p.host}
                 onClick={() => {
                   setSelectedProviderHost(p.host);
                   if (p.models.length > 0) setSelectedModel(p.models[0]);
                 }}
-                className={`p-2.5 rounded border text-xs cursor-pointer transition-all ${
+                className={`p-2.5 rounded border text-xs text-left transition-all ${
                   selectedProviderHost === p.host
                     ? 'border-blue-500 bg-blue-900/30 text-white'
                     : 'border-gray-700 bg-gray-800/80 text-gray-300 hover:border-gray-600'
@@ -118,7 +126,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                   <span className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-400' : 'bg-red-500'}`} />
                 </div>
                 <div className="text-gray-400 text-[10px] truncate">{p.host}</div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -144,8 +152,16 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           )}
         </div>
 
+        {saveError && (
+          <div className="mb-4 text-xs text-red-400 bg-red-950/40 p-2 rounded border border-red-800/50 flex items-center justify-between">
+            <span>{saveError}</span>
+            <button type="button" onClick={onComplete} className="text-gray-300 underline font-medium">Skip & Continue</button>
+          </div>
+        )}
+
         <div className="flex justify-end gap-3">
           <button
+            type="button"
             onClick={handleFinish}
             className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-blue-900/50"
           >

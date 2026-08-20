@@ -6,6 +6,7 @@ export function SettingsView() {
   const [providerName, setProviderName] = useState('Ollama');
   const [providerHost, setProviderHost] = useState('http://127.0.0.1:11434');
   const [providerModel, setProviderModel] = useState('llama3.2');
+  const [providerType, setProviderType] = useState<'ollama' | 'openai'>('ollama');
   const [customHost, setCustomHost] = useState('');
   const [providers, setProviders] = useState<LocalProvider[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -14,7 +15,7 @@ export function SettingsView() {
   const [editorFont, setEditorFont] = useState('system');
   const [showLineNumbers, setShowLineNumbers] = useState(true);
   const [autoTitleEnabled, setAutoTitleEnabled] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedStatus, setSavedStatus] = useState<'idle' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
     loadSettings();
@@ -31,6 +32,9 @@ export function SettingsView() {
 
       const model = await invoke<string | null>('get_setting', { key: 'ai_provider_model' });
       if (model) setProviderModel(model);
+
+      const pType = await invoke<string | null>('get_setting', { key: 'ai_provider_type' });
+      if (pType) setProviderType(pType as 'ollama' | 'openai');
 
       const savedTheme = await invoke<string | null>('get_setting', { key: 'theme' });
       if (savedTheme) {
@@ -73,14 +77,16 @@ export function SettingsView() {
       await invoke('set_setting', { key: 'ai_provider_name', value: providerName });
       await invoke('set_setting', { key: 'ai_provider_host', value: providerHost });
       await invoke('set_setting', { key: 'ai_provider_model', value: providerModel });
+      await invoke('set_setting', { key: 'ai_provider_type', value: providerType });
       await invoke('set_setting', { key: 'theme', value: theme });
       await invoke('set_setting', { key: 'editor_font', value: editorFont });
       await invoke('set_setting', { key: 'show_line_numbers', value: showLineNumbers.toString() });
       await invoke('set_setting', { key: 'auto_title_enabled', value: autoTitleEnabled.toString() });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setSavedStatus('saved');
+      setTimeout(() => setSavedStatus('idle'), 2500);
     } catch (e) {
       console.error('Failed to save settings:', e);
+      setSavedStatus('error');
     }
   };
 
@@ -96,6 +102,7 @@ export function SettingsView() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-theme-accent">Local AI Configuration</h2>
             <button
+              type="button"
               onClick={() => scanProviders()}
               disabled={isScanning}
               className="text-xs px-3 py-1.5 bg-theme-input border border-theme-border hover:bg-theme-bg rounded text-gray-200 transition-colors disabled:opacity-50"
@@ -106,14 +113,17 @@ export function SettingsView() {
           
           <div className="grid grid-cols-2 gap-2">
             {providers.map(p => (
-              <div
+              <button
                 key={p.host}
+                type="button"
+                aria-pressed={providerHost === p.host}
                 onClick={() => {
                   setProviderName(p.name);
                   setProviderHost(p.host);
+                  setProviderType(p.type);
                   if (p.models.length > 0) setProviderModel(p.models[0]);
                 }}
-                className={`p-3 rounded border text-xs cursor-pointer transition-all ${
+                className={`p-3 rounded border text-xs text-left transition-all ${
                   providerHost === p.host
                     ? 'border-theme-accent bg-theme-accent/10 text-white'
                     : 'border-theme-border bg-theme-input/50 text-gray-400 hover:border-gray-500'
@@ -124,7 +134,7 @@ export function SettingsView() {
                   <span className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-400' : 'bg-red-500'}`} />
                 </div>
                 <div className="text-[11px] opacity-75 truncate">{p.host}</div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -174,6 +184,7 @@ export function SettingsView() {
                 className="flex-1 bg-theme-input border border-theme-border rounded p-2 text-xs text-gray-100 focus:outline-none focus:border-theme-accent"
               />
               <button
+                type="button"
                 onClick={() => scanProviders(customHost)}
                 className="text-xs px-3 py-1 bg-theme-accent text-white rounded hover:opacity-90 transition-opacity"
               >
@@ -209,6 +220,8 @@ export function SettingsView() {
               ].map(t => (
                 <button
                   key={t.id}
+                  type="button"
+                  aria-pressed={theme === t.id}
                   onClick={() => handleSelectTheme(t.id)}
                   className={`p-3 rounded border text-left transition-all ${
                     theme === t.id ? 'border-theme-accent ring-1 ring-theme-accent' : 'border-theme-border'
@@ -257,11 +270,22 @@ export function SettingsView() {
           </div>
         </div>
         
+        {savedStatus === 'error' && (
+          <div className="p-3 bg-red-950/40 border border-red-800/50 text-red-300 text-xs rounded">
+            Error saving settings to local database. Please try again.
+          </div>
+        )}
+
         <button
+          type="button"
           onClick={handleSave}
-          className="px-6 py-2.5 bg-theme-accent hover:bg-theme-accentHover text-white font-medium rounded shadow-lg transition-colors w-full"
+          className={`px-6 py-2.5 font-medium rounded shadow-lg transition-colors w-full text-white ${
+            savedStatus === 'error'
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-theme-accent hover:bg-theme-accentHover'
+          }`}
         >
-          {saved ? 'Settings Saved!' : 'Save All Settings'}
+          {savedStatus === 'saved' ? 'Settings Saved!' : savedStatus === 'error' ? 'Save Failed - Retry' : 'Save All Settings'}
         </button>
       </div>
     </div>
