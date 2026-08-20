@@ -8,8 +8,8 @@ KnowledgeDump is designed for individuals who need to capture information freely
 - **Semantic Search**: Find exactly what you are looking for using conceptual searches, not just keyword matches. Returns section-level results with AI-generated descriptions. Semantic search embeddings are computed on-device using Transformers.js (`all-MiniLM-L6-v2`).
 - **Auto-tagging**: Extracts 1-4 concept tags from your text automatically in the background as you write using local open-source AI models.
 - **Knowledge Graph**: Visualize connections between your notes natively in a beautiful 2D force-directed graph with tag filtering.
-- **Offline First**: All data is stored locally in SQLite and LanceDB. Vector embeddings run entirely on-device (via Transformers.js), and AI functions run locally via Ollama, LM Studio, LocalAI, or Jan.
-- **Zero Ongoing Cost**: Operating 100% locally with zero cloud API keys, subscriptions, or remote data lock-in.
+- **Offline First**: All data is stored locally in SQLite and LanceDB. Vector embeddings run entirely on-device (via Transformers.js), and AI functions run locally by default via Ollama, LM Studio, LocalAI, or Jan.
+- **Zero Ongoing Cost**: Local operation requires no cloud API keys or subscriptions; custom endpoints may process data remotely.
 
 ## Getting Started
 
