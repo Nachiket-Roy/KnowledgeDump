@@ -15,6 +15,13 @@ pub struct Tag {
     pub name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+pub struct TagWithCount {
+    pub id: String,
+    pub name: String,
+    pub count: i64,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GraphNode {
     pub id: String,

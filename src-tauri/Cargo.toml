@@ -25,7 +25,6 @@ lancedb = "0.15"
 arrow-array = "53"
 arrow-schema = "53"
 arrow-data = "53"
-reqwest = { version = "0.12", features = ["json"] }
 dotenvy = "0.15"
 keyring = "2.3"
 futures = "0.3"

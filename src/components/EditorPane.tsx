@@ -3,13 +3,13 @@ import CodeMirror from '@uiw/react-codemirror';
 import { EditorView } from '@codemirror/view';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as React from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { extractTags, generateTitle } from '../lib/ai';
-import { Bold, Italic, List, Quote, Download, FileText, Code, PenTool, X, Image as ImageIcon } from 'lucide-react';
+import { Bold, Italic, List, Quote, Download, FileText, Code, PenTool, X, Image as ImageIcon, FileDown } from 'lucide-react';
 import { DrawPad, Shape } from './DrawPad';
-import { save } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 
 interface EditorPaneProps {
@@ -21,7 +21,7 @@ interface EditorPaneProps {
 }
 
 export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet, clearHighlight }: EditorPaneProps) {
-  const viewRef = React.useRef<any>(null);
+  const viewRef = useRef<any>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -29,10 +29,11 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
   const [isTitling, setIsTitling] = useState(false);
   const [showLineNumbers, setShowLineNumbers] = useState(true);
   const [autoTitleEnabled, setAutoTitleEnabled] = useState(false);
+  const [editorFont, setEditorFont] = useState('system');
   const [drawMode, setDrawMode] = useState(false);
   const [drawingData, setDrawingData] = useState<Shape[]>([]);
   const [drawingLoaded, setDrawingLoaded] = useState(false);
-  const contentRef = React.useRef(content);
+  const contentRef = useRef(content);
   
   useEffect(() => {
     contentRef.current = content;
@@ -48,6 +49,9 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
         
         const autoTitle = await invoke<string | null>('get_setting', { key: 'auto_title_enabled' });
         if (autoTitle && isMounted) setAutoTitleEnabled(autoTitle === 'true');
+
+        const font = await invoke<string | null>('get_setting', { key: 'editor_font' });
+        if (font && isMounted) setEditorFont(font);
       } catch(e) {}
     };
     fetchSettings();
@@ -145,7 +149,6 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
 
   useEffect(() => {
     if (highlightSnippet && viewRef.current && content) {
-      // Small timeout to let the editor render completely
       setTimeout(() => {
         if (!viewRef.current) return;
         const index = content.indexOf(highlightSnippet.trim());
@@ -192,6 +195,22 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     view.focus();
   };
 
+  const handleInsertImage = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }]
+      });
+      if (selected && typeof selected === 'string') {
+        const absolutePath = await invoke<string>('copy_image_to_appdata', { sourcePath: selected });
+        const webviewUrl = convertFileSrc(absolutePath);
+        insertMarkdown(`![Image](${webviewUrl})`);
+      }
+    } catch (e) {
+      console.error('Failed to upload image:', e);
+    }
+  };
+
   const handleSaveDrawing = async (shapes: Shape[]) => {
     if (!note) return;
     try {
@@ -233,6 +252,22 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     }
   };
 
+  const handleExportMd = async () => {
+    try {
+      const filePath = await save({
+        filters: [{ name: 'Markdown', extensions: ['md'] }],
+        defaultPath: `${title || 'note'}.md`
+      });
+      if (filePath) {
+        const mdContent = `# ${title}\n\n${content}`;
+        await writeTextFile(filePath, mdContent);
+        alert('Saved successfully!');
+      }
+    } catch (e) {
+      console.error('Failed to export MD:', e);
+    }
+  };
+
   if (!note) {
     return (
       <div className="flex-1 flex items-center justify-center bg-theme-bg text-gray-500">
@@ -240,6 +275,12 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       </div>
     );
   }
+
+  const wordCount = content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0;
+  const charCount = content.length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  const fontClass = editorFont && editorFont !== 'system' ? `font-editor-${editorFont}` : '';
 
   return (
     <div className="flex-1 flex flex-col bg-theme-bg h-screen">
@@ -262,13 +303,16 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
               <button onClick={() => insertMarkdown('- ')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="List"><List size={16}/></button>
               <button onClick={() => insertMarkdown('> ')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Quote"><Quote size={16}/></button>
               <button onClick={() => insertMarkdown('```\n', '\n```')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Code Block"><Code size={16}/></button>
-              <button onClick={() => insertMarkdown('![Image](', ')')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Insert Image"><ImageIcon size={16}/></button>
+              <button onClick={handleInsertImage} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Insert Local Image"><ImageIcon size={16}/></button>
             </div>
             <button onClick={() => window.print()} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors" title="Print to PDF">
               <FileText size={14}/> PDF
             </button>
-            <button onClick={handleExportDoc} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors">
+            <button onClick={handleExportDoc} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors" title="Export to DOC">
               <Download size={14}/> DOC
+            </button>
+            <button onClick={handleExportMd} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors" title="Export to Markdown">
+              <FileDown size={14}/> MD
             </button>
             <button 
               onClick={() => onDeleteNote(note.id)}
@@ -293,8 +337,9 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
           )}
         </div>
       </div>
-      <div className="flex-1 flex overflow-hidden print:bg-white print:text-black relative">
-        <div className="absolute inset-0 overflow-auto">
+
+      <div className="flex-1 flex flex-col overflow-hidden print:bg-white print:text-black relative">
+        <div className="flex-1 relative overflow-auto">
           <div className="relative min-h-full">
             <CodeMirror
               value={content}
@@ -304,7 +349,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
               extensions={[markdown({ base: markdownLanguage }), EditorView.lineWrapping]}
               onChange={handleContentChange}
               onCreateEditor={(view) => { viewRef.current = view; }}
-              className="text-base h-full"
+              className={`text-base h-full ${fontClass}`}
             />
             {drawingLoaded && (
               <DrawPad 
@@ -316,8 +361,18 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
           </div>
         </div>
 
+        {/* Status Bar */}
+        <div className="h-7 px-4 bg-theme-sidebar border-t border-theme-border flex items-center justify-between text-xs text-gray-400 select-none print:hidden z-40">
+          <div>
+            {wordCount.toLocaleString()} words · {charCount.toLocaleString()} chars · {readingTime} min read
+          </div>
+          <div>
+            Markdown Mode
+          </div>
+        </div>
+
         {/* Floating Toolbar Toggle */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center bg-theme-sidebar/90 backdrop-blur-md border border-theme-border rounded-full shadow-2xl z-50 print:hidden">
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center bg-theme-sidebar/90 backdrop-blur-md border border-theme-border rounded-full shadow-2xl z-50 print:hidden">
           <button 
             onClick={() => setDrawMode(!drawMode)} 
             className={`p-3 rounded-full transition-colors flex items-center gap-2 font-medium ${drawMode ? 'bg-theme-accent text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
