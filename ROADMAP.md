@@ -18,10 +18,10 @@ These are deep backend, AI pipeline, search retrieval, and graph clustering arch
 - [ ] **Reciprocal Rank Fusion (RRF)**: Combine top candidate results from LanceDB vector search and SQLite FTS5 keyword search using Reciprocal Rank Fusion ($k=60$) with chunk ID deduplication.
 - [ ] **Hybrid Search Test Suite**: Add automated tests for RRF rank ordering, deduplication, and relevance verification across test queries.
 
-### 3. Zero-Cost AI Pipeline Circuit Breaker
-- [ ] **Stateful Circuit Breaker**: Replace simple request-based fallbacks with a stateful Circuit Breaker pattern (Closed $\rightarrow$ Open $\rightarrow$ Half-Open) tracking consecutive Gemini failure thresholds.
-- [ ] **Ollama Failover & Recovery**: Instantly route AI requests to local Ollama (`http://127.0.0.1:11434`) when the circuit opens, with automated Gemini health probing after a cooldown period.
-- [ ] **Configurable Settings & Model Alignment**: Align documentation and codebase model naming (e.g., `llama3.2`) and allow configurable Ollama host/model options in `SettingsView`.
+### 3. Zero-Cost Local AI Pipeline Circuit Breaker
+- [ ] **Stateful Circuit Breaker**: Implement a stateful Circuit Breaker pattern (Closed $\rightarrow$ Open $\rightarrow$ Half-Open) tracking consecutive local provider failure/timeout thresholds.
+- [ ] **Multi-Provider Failover & Recovery**: Instantly route AI requests to secondary configured local providers (e.g. primary Ollama $\rightarrow$ LM Studio/LocalAI) when the circuit opens, with automated health probing after a cooldown period.
+- [ ] **Configurable Settings & Model Alignment**: Align documentation and codebase model configurations (`llama3.2`) with UI status reporting showing provider health and error states in `SettingsView`.
 
 ### 4. Advanced Knowledge Graph & Leiden Community Detection
 - [ ] **Weighted Similarity Edges**: Generate note-to-note edges using a combination of shared concept tags and semantic vector similarity thresholding.

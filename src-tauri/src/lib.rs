@@ -370,27 +370,6 @@ pub fn run() {
             tauri::async_runtime::block_on(async move {
                 let pool = db::init_db(&handle).await.map_err(|e| Box::<dyn std::error::Error>::from(e))?;
                 
-                // One-time best-effort migration to clean up orphaned Gemini API key from keyring
-                let pool_clone = pool.clone();
-                tauri::async_runtime::spawn(async move {
-                    let cleaned: Option<String> = sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
-                        .bind("gemini_key_cleaned")
-                        .fetch_optional(&pool_clone)
-                        .await
-                        .unwrap_or(None);
-
-                    if cleaned.is_none() {
-                        if let Ok(entry) = keyring::Entry::new("KnowledgeDump", "gemini_api_key") {
-                            let _ = entry.delete_password();
-                        }
-                        let _ = sqlx::query("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
-                            .bind("gemini_key_cleaned")
-                            .bind("true")
-                            .execute(&pool_clone)
-                            .await;
-                    }
-                });
-
                 handle.manage(pool);
                 
                 let lance_conn = vectordb::init_vector_db(&handle).await.map_err(|e| Box::<dyn std::error::Error>::from(e))?;
