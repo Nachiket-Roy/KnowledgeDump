@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { detectLocalProviders, LocalProvider } from '../lib/ai';
+import { Sparkles, Cpu, Search, Tag as TagIcon, Network, Check } from 'lucide-react';
 
 interface OnboardingModalProps {
   onComplete: () => void;
@@ -58,48 +59,55 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const currentProviderObj = providers.find(p => p.host === selectedProviderHost);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-lg w-full p-8 shadow-2xl relative overflow-hidden">
-        {/* Decorative background element */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+      <div className="glass-panel rounded-2xl max-w-lg w-full p-8 shadow-2xl relative overflow-hidden glass-glow">
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-theme-accent/20 rounded-full blur-3xl pointer-events-none"></div>
         
-        <h2 className="text-3xl font-bold text-gray-100 mb-2">Welcome to KnowledgeDump</h2>
-        <p className="text-gray-400 mb-6 text-sm">Your offline-first, local AI-powered personal knowledge base.</p>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-theme-accent/15 border border-theme-accent/40 flex items-center justify-center text-theme-accent glass-glow">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-100 tracking-tight">KnowledgeDump</h2>
+            <p className="text-xs text-gray-400 font-mono">Offline-First Local Knowledge Base</p>
+          </div>
+        </div>
 
-        <div className="space-y-4 mb-6">
-          <div className="flex items-start gap-3">
-            <div className="text-xl">✨</div>
+        <div className="space-y-3.5 mb-6">
+          <div className="flex items-start gap-3 p-2.5 rounded-lg bg-theme-input/30 border border-theme-border/50">
+            <Search className="w-4 h-4 text-theme-accent shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-gray-200">Semantic Search</h3>
-              <p className="text-sm text-gray-500">Find exactly the right section of your notes using natural language.</p>
+              <h3 className="font-semibold text-xs text-gray-200">Semantic Section Search</h3>
+              <p className="text-[11px] text-gray-400 font-sans">Find exact note concepts with vector embeddings calculated on-device.</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="text-xl">🏷️</div>
+          <div className="flex items-start gap-3 p-2.5 rounded-lg bg-theme-input/30 border border-theme-border/50">
+            <TagIcon className="w-4 h-4 text-theme-accent shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-gray-200">Auto-tagging</h3>
-              <p className="text-sm text-gray-500">Concepts are automatically extracted locally as you write.</p>
+              <h3 className="font-semibold text-xs text-gray-200">Local Auto-Tagging</h3>
+              <p className="text-[11px] text-gray-400 font-sans">Concepts and tags are extracted seamlessly as you type.</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="text-xl">🕸️</div>
+          <div className="flex items-start gap-3 p-2.5 rounded-lg bg-theme-input/30 border border-theme-border/50">
+            <Network className="w-4 h-4 text-theme-accent shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-gray-200">Knowledge Graph</h3>
-              <p className="text-sm text-gray-500">Visualize connections between your notes natively.</p>
+              <h3 className="font-semibold text-xs text-gray-200">Interactive Knowledge Graph</h3>
+              <p className="text-[11px] text-gray-400 font-sans">Visualize notes and connections in a 2D force graph.</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700/50 mb-6 space-y-3">
+        <div className="glass-panel p-4 rounded-xl border border-theme-border mb-6 space-y-3">
           <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-blue-400">
-              Local AI Provider Setup
-            </label>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-theme-accent">
+              <Cpu size={14} />
+              <span>Local AI Auto-Detection</span>
+            </div>
             <button
               type="button"
               onClick={scanProviders}
               disabled={isScanning}
-              className="text-xs px-2.5 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-200 disabled:opacity-50"
+              className="text-[11px] font-mono px-2.5 py-1 bg-theme-input border border-theme-border hover:border-theme-accent rounded text-gray-200 disabled:opacity-50"
             >
               {isScanning ? 'Scanning...' : 'Rescan'}
             </button>
@@ -115,28 +123,28 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                   setSelectedProviderHost(p.host);
                   if (p.models.length > 0) setSelectedModel(p.models[0]);
                 }}
-                className={`p-2.5 rounded border text-xs text-left transition-all ${
+                className={`p-2.5 rounded-lg border text-xs text-left transition-all ${
                   selectedProviderHost === p.host
-                    ? 'border-blue-500 bg-blue-900/30 text-white'
-                    : 'border-gray-700 bg-gray-800/80 text-gray-300 hover:border-gray-600'
+                    ? 'border-theme-accent bg-theme-accent/15 text-white glass-glow'
+                    : 'border-theme-border bg-theme-input/30 text-gray-400 hover:border-gray-500'
                 }`}
               >
                 <div className="flex items-center justify-between font-semibold mb-1">
                   <span>{p.name}</span>
-                  <span className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-400' : 'bg-red-500'}`} />
+                  <span className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-400 glass-glow' : 'bg-red-500'}`} />
                 </div>
-                <div className="text-gray-400 text-[10px] truncate">{p.host}</div>
+                <div className="text-gray-400 text-[10px] font-mono truncate">{p.host}</div>
               </button>
             ))}
           </div>
 
           {currentProviderObj?.status === 'online' && currentProviderObj.models.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-gray-300 mb-1">Model</label>
+              <label className="block text-[11px] font-mono text-gray-300 mb-1">Active Model</label>
               <select
                 value={selectedModel}
                 onChange={e => setSelectedModel(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-xs text-gray-100 outline-none"
+                className="w-full glass-input rounded-lg p-2 text-xs font-mono text-gray-100 outline-none"
               >
                 {currentProviderObj.models.map(m => (
                   <option key={m} value={m}>{m}</option>
@@ -146,14 +154,14 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           )}
 
           {!providers.some(p => p.status === 'online') && !isScanning && (
-            <p className="text-xs text-amber-400 bg-amber-950/40 p-2 rounded border border-amber-800/50">
-              No active local AI provider detected. Install <a href="https://ollama.com" target="_blank" rel="noreferrer" className="underline text-blue-400">Ollama</a> or start LM Studio/LocalAI/Jan to enable AI features. You can also configure a custom host later in Settings.
+            <p className="text-[11px] text-amber-300 bg-amber-950/40 p-2 rounded-lg border border-amber-800/50">
+              No local AI running. Install <a href="https://ollama.com" target="_blank" rel="noreferrer" className="underline text-theme-accent font-mono">Ollama</a> or launch LM Studio to enable AI features.
             </p>
           )}
         </div>
 
         {saveError && (
-          <div className="mb-4 text-xs text-red-400 bg-red-950/40 p-2 rounded border border-red-800/50 flex items-center justify-between">
+          <div className="mb-4 text-xs text-red-300 bg-red-950/40 p-2.5 rounded-lg border border-red-800/50 flex items-center justify-between font-mono">
             <span>{saveError}</span>
             <button type="button" onClick={onComplete} className="text-gray-300 underline font-medium">Skip & Continue</button>
           </div>
@@ -163,9 +171,10 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           <button
             type="button"
             onClick={handleFinish}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-blue-900/50"
+            className="px-6 py-2.5 bg-theme-accent text-gray-950 font-semibold text-xs rounded-xl transition-all glass-glow hover:opacity-90 flex items-center gap-1.5"
           >
-            Get Started
+            <Check size={15} />
+            <span>Launch Workspace</span>
           </button>
         </div>
       </div>

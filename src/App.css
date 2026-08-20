@@ -1,39 +1,47 @@
 @import "tailwindcss";
 
 :root, [data-theme="dark"] {
-  --color-theme-sidebar: #1c1c1c;
-  --color-theme-bg: #272727;
-  --color-theme-border: #333333;
-  --color-theme-accent: #60cdff;
-  --color-theme-accentHover: #3a8fb7;
-  --color-theme-input: #333333;
+  --color-theme-sidebar: #131315;
+  --color-theme-bg: #0e0e10;
+  --color-theme-border: rgba(255, 255, 255, 0.08);
+  --color-theme-accent: #00f0ff;
+  --color-theme-accentHover: #00c8d7;
+  --color-theme-input: #1b1b1d;
+  --color-theme-glass: rgba(26, 26, 28, 0.65);
+  --color-theme-glow: rgba(0, 240, 255, 0.15);
 }
 
 [data-theme="light"] {
-  --color-theme-sidebar: #f5f5f5;
+  --color-theme-sidebar: #f8f9fa;
   --color-theme-bg: #ffffff;
-  --color-theme-border: #e0e0e0;
-  --color-theme-accent: #2563eb;
-  --color-theme-accentHover: #1d4ed8;
-  --color-theme-input: #e8e8e8;
+  --color-theme-border: rgba(0, 0, 0, 0.08);
+  --color-theme-accent: #0284c7;
+  --color-theme-accentHover: #0369a1;
+  --color-theme-input: #f1f5f9;
+  --color-theme-glass: rgba(248, 249, 250, 0.75);
+  --color-theme-glow: rgba(2, 132, 199, 0.15);
 }
 
 [data-theme="sepia"] {
   --color-theme-sidebar: #f1e7d0;
   --color-theme-bg: #faf4e8;
-  --color-theme-border: #d4c5a9;
+  --color-theme-border: rgba(180, 83, 9, 0.15);
   --color-theme-accent: #b45309;
   --color-theme-accentHover: #92400e;
   --color-theme-input: #e8ddc7;
+  --color-theme-glass: rgba(241, 231, 208, 0.7);
+  --color-theme-glow: rgba(180, 83, 9, 0.15);
 }
 
 [data-theme="dracula"] {
   --color-theme-sidebar: #21222c;
   --color-theme-bg: #282a36;
-  --color-theme-border: #44475a;
+  --color-theme-border: rgba(189, 147, 249, 0.2);
   --color-theme-accent: #bd93f9;
   --color-theme-accentHover: #ff79c6;
   --color-theme-input: #44475a;
+  --color-theme-glass: rgba(33, 34, 44, 0.75);
+  --color-theme-glow: rgba(189, 147, 249, 0.2);
 }
 
 @theme {
@@ -43,6 +51,44 @@
   --color-theme-accent: var(--color-theme-accent);
   --color-theme-accentHover: var(--color-theme-accentHover);
   --color-theme-input: var(--color-theme-input);
+  --color-theme-glass: var(--color-theme-glass);
+  --color-theme-glow: var(--color-theme-glow);
+}
+
+/* Glassmorphism & Depth Utilities */
+.glass-panel {
+  background-color: var(--color-theme-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-theme-border);
+}
+
+.glass-card {
+  background-color: var(--color-theme-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-theme-border);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  border-color: var(--color-theme-accent);
+  box-shadow: 0 0 20px var(--color-theme-glow);
+}
+
+.glass-input {
+  background-color: var(--color-theme-input);
+  border: 1px solid var(--color-theme-border);
+  transition: all 0.15s ease-in-out;
+}
+
+.glass-input:focus {
+  border-color: var(--color-theme-accent);
+  box-shadow: 0 0 12px var(--color-theme-glow);
+}
+
+.glass-glow {
+  box-shadow: 0 0 16px var(--color-theme-glow);
 }
 
 /* Local Fonts */
@@ -96,8 +142,8 @@
 @layer base {
   body {
     background-color: var(--color-theme-bg);
-    color: #f3f4f6;
-    font-family: ui-sans-serif, system-ui, sans-serif;
+    color: #e5e1e4;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -115,28 +161,27 @@
 
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--color-theme-sidebar);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--color-theme-border);
-    border-radius: 5px;
-    border: 2px solid var(--color-theme-sidebar);
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #505050;
+    background: var(--color-theme-accent);
   }
   
   /* Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-theme-border) var(--color-theme-sidebar);
+    scrollbar-color: var(--color-theme-border) transparent;
   }
 
   /* Override CodeMirror background & colors */
