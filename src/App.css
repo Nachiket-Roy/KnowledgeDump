@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme {
+:root, [data-theme="dark"] {
   --color-theme-sidebar: #1c1c1c;
   --color-theme-bg: #272727;
   --color-theme-border: #333333;
@@ -9,9 +9,108 @@
   --color-theme-input: #333333;
 }
 
+[data-theme="light"] {
+  --color-theme-sidebar: #f5f5f5;
+  --color-theme-bg: #ffffff;
+  --color-theme-border: #e0e0e0;
+  --color-theme-accent: #2563eb;
+  --color-theme-accentHover: #1d4ed8;
+  --color-theme-input: #e8e8e8;
+}
+
+[data-theme="sepia"] {
+  --color-theme-sidebar: #f1e7d0;
+  --color-theme-bg: #faf4e8;
+  --color-theme-border: #d4c5a9;
+  --color-theme-accent: #b45309;
+  --color-theme-accentHover: #92400e;
+  --color-theme-input: #e8ddc7;
+}
+
+[data-theme="dracula"] {
+  --color-theme-sidebar: #21222c;
+  --color-theme-bg: #282a36;
+  --color-theme-border: #44475a;
+  --color-theme-accent: #bd93f9;
+  --color-theme-accentHover: #ff79c6;
+  --color-theme-input: #44475a;
+}
+
+@theme {
+  --color-theme-sidebar: var(--color-theme-sidebar);
+  --color-theme-bg: var(--color-theme-bg);
+  --color-theme-border: var(--color-theme-border);
+  --color-theme-accent: var(--color-theme-accent);
+  --color-theme-accentHover: var(--color-theme-accentHover);
+  --color-theme-input: var(--color-theme-input);
+}
+
+/* Local Fonts */
+@font-face {
+  font-family: 'Fira Code';
+  src: url('/fonts/fira-code.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/roboto.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Source Code Pro';
+  src: url('/fonts/source-code-pro.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Font Family Utility Classes */
+.font-editor-inter .cm-content { font-family: 'Inter', sans-serif !important; }
+.font-editor-roboto .cm-content { font-family: 'Roboto', sans-serif !important; }
+.font-editor-fira-code .cm-content { font-family: 'Fira Code', monospace !important; }
+.font-editor-jetbrains-mono .cm-content { font-family: 'JetBrains Mono', monospace !important; }
+.font-editor-source-code-pro .cm-content { font-family: 'Source Code Pro', monospace !important; }
+
 @layer base {
   body {
-    @apply bg-theme-bg text-gray-100 font-sans antialiased;
+    background-color: var(--color-theme-bg);
+    color: #f3f4f6;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  [data-theme="light"] body {
+    color: #1f2937;
+  }
+
+  [data-theme="sepia"] body {
+    color: #44403c;
+  }
+
+  [data-theme="dracula"] body {
+    color: #f8f8f2;
   }
 
   /* Custom Scrollbar */
@@ -39,7 +138,8 @@
     scrollbar-width: thin;
     scrollbar-color: var(--color-theme-border) var(--color-theme-sidebar);
   }
-  /* Override CodeMirror oneDark bluish background */
+
+  /* Override CodeMirror background & colors */
   .cm-editor {
     background-color: transparent !important;
   }
@@ -52,12 +152,10 @@
   }
 }
 
-
 @media print {
   @page { margin: 0; }
   body { padding: 1.5cm; }
   
-  /* Fix print white split and colors */
   body, .cm-editor {
     background-color: white !important;
   }
@@ -68,7 +166,6 @@
     display: none !important;
   }
   
-  /* Let CodeMirror expand fully for printing */
   .cm-editor, .cm-scroller {
     height: auto !important;
     overflow: visible !important;

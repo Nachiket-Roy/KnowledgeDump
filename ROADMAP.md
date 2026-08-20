@@ -5,34 +5,36 @@ Welcome to the future of KnowledgeDump! This document outlines our planned featu
 Please comment on the corresponding GitHub Issue before starting work to get assigned!
 
 ---
+## 🔴 Advanced / Core Architecture & Future Scope 
+These are deep backend, AI pipeline, search retrieval, and graph clustering architecture milestones.
 
-## 🟢 Good First Issues (Beginner Friendly)
-These are UI-focused or straightforward tasks perfect for first-time contributors.
+### 1. Benchmarking & Performance Measurement Suite
+- [ ] **Synthetic Corpus Benchmark Suite**: Create benchmark generators for Small (100 notes), Medium (1,000 notes), and Large (10,000 notes) note libraries with fixed query-relevance test sets.
+- [ ] **Latency & Resource Target Verification**: Measure p50, p95, and p99 query latency (target: p95 < 200ms) and system memory RSS (target: < 400MB) using `performance.now()` and process tracking.
+- [ ] **Search Relevance Metrics**: Implement automated quality measurements including Recall@10, Mean Reciprocal Rank (MRR), and nDCG@10.
 
-- [ ] **Onboarding UI Overhaul**: The initial Gemini API key popup is a bit intrusive. Redesign it into a non-blocking banner or integrate it directly into the Settings menu with a smoother empty-state prompt.
-- [ ] **Gemini Integration Testing**: Add automated tests to ensure the Gemini AI prompts and logic are fully working and gracefully degrade when offline.
-- [ ] **GitHub Pages Landing Page**: Create a simple HTML/CSS landing page for the project to showcase features (Semantic Search, Knowledge Graph, DrawPad) and provide a professional download page.
-- [ ] **Custom Themes**: Add a theme switcher (e.g., Light Mode, Sepia, Dracula) using TailwindCSS variables.
-- [ ] **Font Selection**: Allow users to change the editor font (e.g., Fira Code, Inter, Roboto).
-- [ ] **Word Count & Reading Time**: Add a small status bar at the bottom of the editor showing the current word count and estimated reading time.
-- [ ] **Export to Markdown**: We currently support `.doc` and `.pdf`. Add a simple "Export to `.md`" button to download the raw markdown file.
+### 2. Hybrid Search Engine (BM25 + Vector Search + RRF)
+- [ ] **SQLite FTS5 Full-Text Search**: Implement native Rust-based SQLite FTS5 for BM25 keyword search, replacing the legacy frontend Lunr index.
+- [ ] **Reciprocal Rank Fusion (RRF)**: Combine top candidate results from LanceDB vector search and SQLite FTS5 keyword search using Reciprocal Rank Fusion ($k=60$) with chunk ID deduplication.
+- [ ] **Hybrid Search Test Suite**: Add automated tests for RRF rank ordering, deduplication, and relevance verification across test queries.
 
-## 🟡 Intermediate Features (React / Tauri / TypeScript)
-These require a bit more understanding of the codebase or Tauri's native APIs.
+### 3. Zero-Cost Local AI Pipeline Circuit Breaker
+- [ ] **Stateful Circuit Breaker**: Implement a stateful Circuit Breaker pattern (Closed $\rightarrow$ Open $\rightarrow$ Half-Open) tracking consecutive local provider failure/timeout thresholds.
+- [ ] **Multi-Provider Failover & Recovery**: Instantly route AI requests to secondary configured local providers (e.g. primary Ollama $\rightarrow$ LM Studio/LocalAI) when the circuit opens, with automated health probing after a cooldown period.
+- [ ] **Configurable Settings & Model Alignment**: Align documentation and codebase model configurations (`llama3.2`) with UI status reporting showing provider health and error states in `SettingsView`.
 
-- [ ] **Folder/Tag Filtering**: Enhance the sidebar to group notes by folders or tags (currently tags are extracted via AI, but not used for filtering).
-- [ ] **Canvas Enhancements**: 
-  - Add an Eraser tool to the `DrawPad`.
-  - Add text-box insertion capabilities to the canvas.
-  - Implement an Undo/Redo stack for canvas strokes.
-- [ ] **Image Uploads via File System**: Currently, the image button just inserts `![Image](url)`. Implement a Tauri file picker (`plugin-dialog`) that copies a local image to the app's local app-data folder and embeds the local path.
+### 4. Advanced Knowledge Graph & Leiden Community Detection
+- [ ] **Weighted Similarity Edges**: Generate note-to-note edges using a combination of shared concept tags and semantic vector similarity thresholding.
+- [ ] **Leiden Community Detection**: Implement Leiden graph community detection to detect note clusters and assign visual color styling to graph communities.
+- [ ] **Interactive Community Filtering**: Allow users to highlight, filter, and inspect specific graph communities inside `GraphView.tsx`.
 
-## 🔴 Advanced / Core Architecture (Rust / SQLite / VectorDB)
-These are deep backend features requiring knowledge of Rust, LanceDB, or SQLite.
+### 5. On-Device Embedding Lifecycle & Migration
+- [ ] **Vector Model & Version Tracking**: Store embedding model versions (`all-MiniLM-L6-v2`, 384-dim) and chunking parameters alongside stored vectors.
+- [ ] **Auto-Reindexing Pipeline**: Support seamless vector re-indexing when the embedding model or chunking strategy upgrades.
+- [ ] **Indexing & Model Download UI**: Provide real-time progress indicators and failure state notifications during initial Transformers.js model loading and vector creation.
 
-- [ ] **Full-Text Search Migration**: Migrate from the basic frontend `lunr.js` search to a native Rust-based SQLite FTS5 (Full-Text Search) implementation for better performance on large note libraries.
-- [ ] **Cloud Syncing**: Implement an optional end-to-end encrypted cloud sync feature (e.g., syncing the local SQLite DB to AWS S3 or Google Drive).
-- [ ] **AI Model Options**: Currently, AI tagging/titling uses predefined models. Allow users to configure their own Ollama host URL or OpenAI API keys in the `SettingsView`.
+### 6. Cloud Syncing & Storage
+- [ ] **Encrypted Cloud Sync**: Optional end-to-end encrypted sync for local SQLite database and LanceDB vectors to user-provided storage (AWS S3, Google Drive).
 
 ---
 

@@ -98,11 +98,6 @@ async fn vector_search(
 
 #[tauri::command]
 async fn get_setting(key: String, pool: State<'_, SqlitePool>) -> Result<Option<String>, String> {
-    if key == "gemini_api_key" {
-        let entry = keyring::Entry::new("KnowledgeDump", "gemini_api_key").map_err(|e| e.to_string())?;
-        return Ok(entry.get_password().ok());
-    }
-
     let result: Option<String> = sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")
         .bind(key)
         .fetch_optional(&*pool)
@@ -113,18 +108,6 @@ async fn get_setting(key: String, pool: State<'_, SqlitePool>) -> Result<Option<
 
 #[tauri::command]
 async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) -> Result<(), String> {
-    if key == "gemini_api_key" {
-        let entry = keyring::Entry::new("KnowledgeDump", "gemini_api_key").map_err(|e| e.to_string())?;
-        entry.set_password(&value).map_err(|e| e.to_string())?;
-        // Cleanup legacy plaintext storage from earlier versions.
-        sqlx::query("DELETE FROM settings WHERE key = ?")
-            .bind("gemini_api_key")
-            .execute(&*pool)
-            .await
-            .map_err(|e| e.to_string())?;
-        return Ok(());
-    }
-
     sqlx::query("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
         .bind(key)
         .bind(value)
@@ -132,45 +115,6 @@ async fn set_setting(key: String, value: String, pool: State<'_, SqlitePool>) ->
         .await
         .map_err(|e| e.to_string())?;
     Ok(())
-}
-
-#[tauri::command]
-async fn generate_gemini_description(prompt: String, _pool: State<'_, SqlitePool>) -> Result<String, String> {
-    let api_key = keyring::Entry::new("KnowledgeDump", "gemini_api_key")
-        .and_then(|e| e.get_password())
-        .unwrap_or_default();
-
-    if api_key.is_empty() {
-        return Err("Gemini API key not configured".to_string());
-    }
-    
-    let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-    
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(4))
-        .build()
-        .map_err(|e| e.to_string())?;
-        
-    let response = client.post(url)
-        .header("x-goog-api-key", api_key)
-        .json(&serde_json::json!({
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }]
-        }))
-        .send()
-        .await
-        .map_err(|e| format!("Failed to communicate with Gemini API: {}", e))?
-        .error_for_status()
-        .map_err(|e| format!("Gemini API returned an error status: {}", e))?;
-        
-    let res_json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    
-    if let Some(text) = res_json["candidates"][0]["content"]["parts"][0]["text"].as_str() {
-        Ok(text.to_string())
-    } else {
-        Err("Failed to parse Gemini response".to_string())
-    }
 }
 
 #[tauri::command]
@@ -262,6 +206,110 @@ async fn get_note_tags(note_id: String, pool: State<'_, SqlitePool>) -> Result<V
 }
 
 #[tauri::command]
+async fn list_all_tags(pool: State<'_, SqlitePool>) -> Result<Vec<models::TagWithCount>, String> {
+    sqlx::query_as::<_, models::TagWithCount>(
+        r#"
+        SELECT t.id, t.name, COUNT(nt.note_id) as count
+        FROM tags t
+        LEFT JOIN note_tags nt ON t.id = nt.tag_id
+        GROUP BY t.id, t.name
+        ORDER BY count DESC, t.name ASC
+        "#
+    )
+    .fetch_all(&*pool)
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn list_notes_by_tags(
+    tag_ids: Vec<String>,
+    mode: String,
+    pool: State<'_, SqlitePool>,
+) -> Result<Vec<Note>, String> {
+    if tag_ids.is_empty() {
+        return list_notes(pool).await;
+    }
+
+    let norm_mode = mode.trim().to_lowercase();
+    let placeholders = tag_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+
+    let sql = if norm_mode == "and" {
+        format!(
+            "SELECT n.id, n.title, n.content, n.created_at, n.updated_at \
+             FROM notes n JOIN note_tags nt ON n.id = nt.note_id \
+             WHERE nt.tag_id IN ({}) \
+             GROUP BY n.id, n.title, n.content, n.created_at, n.updated_at \
+             HAVING COUNT(DISTINCT nt.tag_id) = ? \
+             ORDER BY n.updated_at DESC",
+            placeholders
+        )
+    } else {
+        format!(
+            "SELECT DISTINCT n.id, n.title, n.content, n.created_at, n.updated_at \
+             FROM notes n JOIN note_tags nt ON n.id = nt.note_id \
+             WHERE nt.tag_id IN ({}) \
+             ORDER BY n.updated_at DESC",
+            placeholders
+        )
+    };
+
+    let mut query = sqlx::query_as::<_, Note>(&sql);
+    for tag_id in &tag_ids {
+        query = query.bind(tag_id);
+    }
+    if norm_mode == "and" {
+        query = query.bind(tag_ids.len() as i64);
+    }
+
+    query.fetch_all(&*pool).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn copy_image_to_appdata(
+    source_path: String,
+    app_handle: tauri::AppHandle,
+) -> Result<String, String> {
+    let source = std::path::PathBuf::from(&source_path);
+    if !source.exists() || !source.is_file() {
+        return Err("Invalid source file path".to_string());
+    }
+
+    let ext = source.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let allowed_extensions = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
+    if !allowed_extensions.contains(&ext.to_lowercase().as_str()) {
+        return Err("Unsupported image file format".to_string());
+    }
+
+    let metadata = std::fs::metadata(&source).map_err(|e| e.to_string())?;
+    if metadata.len() > 50 * 1024 * 1024 {
+        return Err("Image file size exceeds 50 MB limit".to_string());
+    }
+
+    let data_dir = app_handle
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| e.to_string())?;
+
+    let images_dir = data_dir.join("images");
+    let filename = format!(
+        "{}-{}",
+        uuid::Uuid::new_v4(),
+        source.file_name().unwrap_or_default().to_string_lossy()
+    );
+    let dest = images_dir.join(&filename);
+
+    tokio::task::spawn_blocking(move || {
+        std::fs::create_dir_all(&images_dir)?;
+        std::fs::copy(&source, &dest)?;
+        Ok::<_, std::io::Error>(dest.to_string_lossy().to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn get_graph_data(pool: State<'_, SqlitePool>) -> Result<models::GraphData, String> {
     let notes: Vec<(String, String)> = sqlx::query_as("SELECT id, title FROM notes")
         .fetch_all(&*pool)
@@ -321,6 +369,7 @@ pub fn run() {
             
             tauri::async_runtime::block_on(async move {
                 let pool = db::init_db(&handle).await.map_err(|e| Box::<dyn std::error::Error>::from(e))?;
+                
                 handle.manage(pool);
                 
                 let lance_conn = vectordb::init_vector_db(&handle).await.map_err(|e| Box::<dyn std::error::Error>::from(e))?;
@@ -337,9 +386,11 @@ pub fn run() {
             delete_note,
             upsert_vectors,
             vector_search,
-            generate_gemini_description,
             add_tags_to_note,
             get_note_tags,
+            list_all_tags,
+            list_notes_by_tags,
+            copy_image_to_appdata,
             get_graph_data,
             save_drawing,
             get_drawing,
