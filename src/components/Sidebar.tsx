@@ -110,7 +110,7 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote, onDel
             type="text" 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search notes... (Ctrl+K)" 
+            placeholder="Search notes..." 
             className="w-full glass-input text-xs rounded-lg py-2 pl-9 pr-8 outline-none text-gray-100 placeholder-gray-500 font-sans"
           />
           {searchQuery && (
@@ -118,13 +118,14 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote, onDel
               onClick={() => setSearchQuery('')}
               className="absolute right-2.5 text-gray-400 hover:text-gray-200 p-0.5"
               type="button"
+              aria-label="Clear search"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        {allTags.length > 0 && (
+        {(allTags.length > 0 || selectedTagIds.length > 0) && (
           <div className="pt-1">
             <div className="flex items-center justify-between text-[11px] font-medium text-gray-400 px-1 py-1">
               <button

@@ -9,6 +9,9 @@
   --color-theme-input: #1b1b1d;
   --color-theme-glass: rgba(26, 26, 28, 0.65);
   --color-theme-glow: rgba(0, 240, 255, 0.15);
+  --color-theme-scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --color-theme-text: #e5e1e4;
+  --color-theme-text-muted: #9ca3af;
 }
 
 [data-theme="light"] {
@@ -20,6 +23,9 @@
   --color-theme-input: #f1f5f9;
   --color-theme-glass: rgba(248, 249, 250, 0.75);
   --color-theme-glow: rgba(2, 132, 199, 0.15);
+  --color-theme-scrollbar-thumb: rgba(0, 0, 0, 0.25);
+  --color-theme-text: #1f2937;
+  --color-theme-text-muted: #6b7280;
 }
 
 [data-theme="sepia"] {
@@ -31,6 +37,9 @@
   --color-theme-input: #e8ddc7;
   --color-theme-glass: rgba(241, 231, 208, 0.7);
   --color-theme-glow: rgba(180, 83, 9, 0.15);
+  --color-theme-scrollbar-thumb: rgba(180, 83, 9, 0.3);
+  --color-theme-text: #44403c;
+  --color-theme-text-muted: #78716c;
 }
 
 [data-theme="dracula"] {
@@ -42,6 +51,9 @@
   --color-theme-input: #44475a;
   --color-theme-glass: rgba(33, 34, 44, 0.75);
   --color-theme-glow: rgba(189, 147, 249, 0.2);
+  --color-theme-scrollbar-thumb: rgba(189, 147, 249, 0.3);
+  --color-theme-text: #f8f8f2;
+  --color-theme-text-muted: #6272a4;
 }
 
 @theme {
@@ -53,6 +65,8 @@
   --color-theme-input: var(--color-theme-input);
   --color-theme-glass: var(--color-theme-glass);
   --color-theme-glow: var(--color-theme-glow);
+  --color-theme-text: var(--color-theme-text);
+  --color-theme-text-muted: var(--color-theme-text-muted);
 }
 
 /* Glassmorphism & Depth Utilities */
@@ -142,8 +156,8 @@
 @layer base {
   body {
     background-color: var(--color-theme-bg);
-    color: #e5e1e4;
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    color: var(--color-theme-text);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -170,7 +184,7 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--color-theme-scrollbar-thumb);
     border-radius: 9999px;
   }
 
@@ -181,7 +195,7 @@
   /* Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-theme-border) transparent;
+    scrollbar-color: var(--color-theme-scrollbar-thumb) transparent;
   }
 
   /* Override CodeMirror background & colors */

@@ -60,7 +60,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-      <div className="glass-panel rounded-2xl max-w-lg w-full p-8 shadow-2xl relative overflow-hidden glass-glow">
+      <div className="glass-panel rounded-2xl max-w-lg w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-8 shadow-2xl relative glass-glow">
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-theme-accent/20 rounded-full blur-3xl pointer-events-none"></div>
         
         <div className="flex items-center gap-3 mb-4">
@@ -131,7 +131,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               >
                 <div className="flex items-center justify-between font-semibold mb-1">
                   <span>{p.name}</span>
-                  <span className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-400 glass-glow' : 'bg-red-500'}`} />
+                  <span className="sr-only">{p.status === 'online' ? 'Online' : 'Offline'}</span>
+                  <span aria-hidden="true" className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-400 glass-glow' : 'bg-red-500'}`} />
                 </div>
                 <div className="text-gray-400 text-[10px] font-mono truncate">{p.host}</div>
               </button>
@@ -140,8 +141,9 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
           {currentProviderObj?.status === 'online' && currentProviderObj.models.length > 0 && (
             <div>
-              <label className="block text-[11px] font-mono text-gray-300 mb-1">Active Model</label>
+              <label htmlFor="onboarding-active-model" className="block text-[11px] font-mono text-gray-300 mb-1">Active Model</label>
               <select
+                id="onboarding-active-model"
                 value={selectedModel}
                 onChange={e => setSelectedModel(e.target.value)}
                 className="w-full glass-input rounded-lg p-2 text-xs font-mono text-gray-100 outline-none"
@@ -155,13 +157,13 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
           {!providers.some(p => p.status === 'online') && !isScanning && (
             <p className="text-[11px] text-amber-300 bg-amber-950/40 p-2 rounded-lg border border-amber-800/50">
-              No local AI running. Install <a href="https://ollama.com" target="_blank" rel="noreferrer" className="underline text-theme-accent font-mono">Ollama</a> or launch LM Studio to enable AI features.
+              No local AI running. Install <a href="https://ollama.com" target="_blank" rel="noreferrer" className="underline text-theme-accent font-mono">Ollama</a> or start LM Studio, LocalAI, or Jan to enable AI features.
             </p>
           )}
         </div>
 
         {saveError && (
-          <div className="mb-4 text-xs text-red-300 bg-red-950/40 p-2.5 rounded-lg border border-red-800/50 flex items-center justify-between font-mono">
+          <div role="alert" className="mb-4 text-xs text-red-300 bg-red-950/40 p-2.5 rounded-lg border border-red-800/50 flex items-center justify-between font-mono">
             <span>{saveError}</span>
             <button type="button" onClick={onComplete} className="text-gray-300 underline font-medium">Skip & Continue</button>
           </div>
