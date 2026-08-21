@@ -161,18 +161,6 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  [data-theme="light"] body {
-    color: #1f2937;
-  }
-
-  [data-theme="sepia"] body {
-    color: #44403c;
-  }
-
-  [data-theme="dracula"] body {
-    color: #f8f8f2;
-  }
-
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
