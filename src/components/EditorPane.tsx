@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import * as React from 'react';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { extractTags, generateTitle } from '../lib/ai';
-import { Bold, Italic, List, Quote, Download, FileText, Code, PenTool, X, Image as ImageIcon, FileDown } from 'lucide-react';
+import { Bold, Italic, List, Quote, Download, FileText, Code, PenTool, X, Image as ImageIcon, FileDown, Sparkles } from 'lucide-react';
 import { DrawPad, Shape } from './DrawPad';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
@@ -103,7 +103,6 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     }
   };
 
-  // Debounce auto-tagging after 2.5 seconds of inactivity
   useEffect(() => {
     if (!note || !content.trim()) return;
 
@@ -124,7 +123,6 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
     return () => clearTimeout(timer);
   }, [content, note?.id]);
 
-  // Debounce auto-title after 3 seconds of inactivity if enabled and title is "New Note"
   useEffect(() => {
     if (!note || !autoTitleEnabled || title !== 'New Note' || content.trim().length < 20) return;
 
@@ -245,7 +243,7 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
       });
       if (filePath) {
         await writeTextFile(filePath, htmlContent);
-        alert('Saved successfully!');
+        alert('Exported Word Document successfully!');
       }
     } catch (e) {
       console.error('Failed to export doc:', e);
@@ -259,14 +257,13 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
         defaultPath: `${title || 'note'}.md`
       });
       if (filePath) {
-        // Normalize asset protocol URLs to portable image references for external viewers
         const portableContent = content.replace(
           /!\[(.*?)\]\((?:asset:\/\/localhost|https:\/\/asset\.localhost|\/|[a-z]:).*?([^\/\\]+\.(?:png|jpg|jpeg|gif|webp|svg))\)/gi,
           '![$1](images/$2)'
         );
         const mdContent = `# ${title}\n\n${portableContent}`;
         await writeTextFile(filePath, mdContent);
-        alert('Saved successfully!');
+        alert('Exported Markdown successfully!');
       }
     } catch (e) {
       console.error('Failed to export MD:', e);
@@ -275,8 +272,11 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
 
   if (!note) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-theme-bg text-gray-500">
-        Select or create a note to begin editing.
+      <div className="flex-1 flex flex-col items-center justify-center bg-theme-bg text-gray-500 font-sans space-y-3">
+        <div className="w-12 h-12 rounded-xl bg-theme-input flex items-center justify-center border border-theme-border text-gray-400">
+          <Sparkles size={24} />
+        </div>
+        <p className="text-sm font-medium">Select or create a note to begin editing.</p>
       </div>
     );
   }
@@ -288,64 +288,78 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
   const fontClass = editorFont && editorFont !== 'system' ? `font-editor-${editorFont}` : '';
 
   return (
-    <div className="flex-1 flex flex-col bg-theme-bg h-screen">
-      <div className="p-4 border-b border-theme-border flex flex-col bg-theme-bg gap-2 print:hidden">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center flex-1">
+    <div className="flex-1 flex flex-col bg-theme-bg h-screen relative overflow-hidden">
+      {/* Top Header & Formatting Bar */}
+      <div className="p-4 border-b border-theme-border/60 flex flex-col bg-theme-sidebar/40 backdrop-blur-md gap-3 print:hidden z-10">
+        <div className="flex justify-between items-center gap-4">
+          <div className="flex items-center flex-1 min-w-0">
             <input 
               type="text" 
               value={title}
               onChange={handleTitleChange}
-              placeholder="Note Title" 
-              className="bg-transparent text-xl font-bold text-gray-100 outline-none flex-1 placeholder-gray-600"
+              placeholder="Untitled Note..." 
+              className="bg-transparent text-2xl font-bold text-gray-100 outline-none flex-1 placeholder-gray-600 tracking-tight"
             />
-            {isTitling && <span className="text-xs text-theme-accent animate-pulse ml-2">generating title...</span>}
+            {isTitling && (
+              <span className="text-xs text-theme-accent animate-pulse font-mono flex items-center gap-1 shrink-0 ml-3">
+                <Sparkles size={12} /> titling...
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center bg-theme-input/50 rounded-md p-1 border border-theme-border mr-2">
-              <button onClick={() => insertMarkdown('**', '**')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Bold"><Bold size={16}/></button>
-              <button onClick={() => insertMarkdown('*', '*')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Italic"><Italic size={16}/></button>
-              <button onClick={() => insertMarkdown('- ')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="List"><List size={16}/></button>
-              <button onClick={() => insertMarkdown('> ')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Quote"><Quote size={16}/></button>
-              <button onClick={() => insertMarkdown('```\n', '\n```')} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Code Block"><Code size={16}/></button>
-              <button onClick={handleInsertImage} className="p-1.5 text-gray-400 hover:text-white hover:bg-theme-sidebar rounded transition-colors" title="Insert Local Image"><ImageIcon size={16}/></button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Formatting Tools Group */}
+            <div className="flex items-center bg-theme-input/60 rounded-lg p-1 border border-theme-border/70 backdrop-blur-sm">
+              <button type="button" onClick={() => insertMarkdown('**', '**')} className="p-1.5 text-gray-400 hover:text-gray-100 hover:bg-theme-sidebar rounded transition-colors" title="Bold"><Bold size={15}/></button>
+              <button type="button" onClick={() => insertMarkdown('*', '*')} className="p-1.5 text-gray-400 hover:text-gray-100 hover:bg-theme-sidebar rounded transition-colors" title="Italic"><Italic size={15}/></button>
+              <button type="button" onClick={() => insertMarkdown('- ')} className="p-1.5 text-gray-400 hover:text-gray-100 hover:bg-theme-sidebar rounded transition-colors" title="List"><List size={15}/></button>
+              <button type="button" onClick={() => insertMarkdown('> ')} className="p-1.5 text-gray-400 hover:text-gray-100 hover:bg-theme-sidebar rounded transition-colors" title="Quote"><Quote size={15}/></button>
+              <button type="button" onClick={() => insertMarkdown('```\n', '\n```')} className="p-1.5 text-gray-400 hover:text-gray-100 hover:bg-theme-sidebar rounded transition-colors" title="Code Block"><Code size={15}/></button>
+              <button type="button" onClick={handleInsertImage} className="p-1.5 text-gray-400 hover:text-gray-100 hover:bg-theme-sidebar rounded transition-colors" title="Insert Local Image"><ImageIcon size={15}/></button>
             </div>
-            <button onClick={() => window.print()} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors" title="Print to PDF">
-              <FileText size={14}/> PDF
-            </button>
-            <button onClick={handleExportDoc} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors" title="Export to DOC">
-              <Download size={14}/> DOC
-            </button>
-            <button onClick={handleExportMd} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition-colors" title="Export to Markdown">
-              <FileDown size={14}/> MD
-            </button>
+
+            {/* Export Actions */}
+            <div className="flex items-center gap-1 bg-theme-input/40 p-1 rounded-lg border border-theme-border/50">
+              <button type="button" onClick={() => window.print()} className="flex items-center gap-1 text-[11px] font-mono px-2.5 py-1 rounded text-gray-300 hover:text-theme-accent hover:bg-theme-sidebar transition-colors" title="Print to PDF">
+                <FileText size={13}/> PDF
+              </button>
+              <button type="button" onClick={handleExportDoc} className="flex items-center gap-1 text-[11px] font-mono px-2.5 py-1 rounded text-gray-300 hover:text-theme-accent hover:bg-theme-sidebar transition-colors" title="Export to DOC">
+                <Download size={13}/> DOC
+              </button>
+              <button type="button" onClick={handleExportMd} className="flex items-center gap-1 text-[11px] font-mono px-2.5 py-1 rounded text-gray-300 hover:text-theme-accent hover:bg-theme-sidebar transition-colors" title="Export to Markdown">
+                <FileDown size={13}/> MD
+              </button>
+            </div>
+
             <button 
+              type="button"
               onClick={() => onDeleteNote(note.id)}
-              className="text-xs px-3 py-1.5 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors ml-2"
+              className="text-xs px-3 py-1.5 rounded-lg bg-red-950/30 border border-red-800/40 text-red-400 hover:bg-red-900/40 transition-colors"
             >
               Delete
             </button>
           </div>
         </div>
         
-        {/* Tags Display */}
-        <div className="flex flex-wrap gap-2 items-center min-h-[24px]">
+        {/* Concept Tags Row */}
+        <div className="flex flex-wrap gap-1.5 items-center min-h-[22px]">
           {tags.map(tag => (
-            <span key={tag} className="px-2 py-0.5 rounded-full text-xs font-medium bg-theme-accent/20 text-theme-accent border border-theme-accent/50">
+            <span key={tag} className="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-theme-accent/10 text-theme-accent border border-theme-accent/30">
               #{tag}
             </span>
           ))}
           {isTagging && (
-            <span className="text-xs text-gray-500 animate-pulse flex items-center gap-1">
-              ✨ Auto-tagging...
+            <span className="text-xs text-gray-400 font-mono animate-pulse flex items-center gap-1">
+              <Sparkles size={12} className="text-theme-accent" /> Extracting tags...
             </span>
           )}
         </div>
       </div>
 
+      {/* Editor & Canvas Container */}
       <div className="flex-1 flex flex-col overflow-hidden print:bg-white print:text-black relative">
-        <div className="flex-1 relative overflow-auto">
-          <div className="relative min-h-full">
+        <div className="flex-1 relative overflow-auto p-4">
+          <div className="relative min-h-full max-w-4xl mx-auto">
             <CodeMirror
               value={content}
               height="100%"
@@ -367,24 +381,33 @@ export function EditorPane({ note, onUpdateNote, onDeleteNote, highlightSnippet,
         </div>
 
         {/* Status Bar */}
-        <div className="h-7 px-4 bg-theme-sidebar border-t border-theme-border flex items-center justify-between text-xs text-gray-400 select-none print:hidden z-40">
-          <div>
-            {wordCount.toLocaleString()} words · {charCount.toLocaleString()} chars · {readingTime} min read
+        <div className="h-8 px-6 bg-theme-sidebar/80 border-t border-theme-border/60 flex items-center justify-between text-xs text-gray-400 font-mono select-none print:hidden z-30 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <span>{wordCount.toLocaleString()} words</span>
+            <span>·</span>
+            <span>{charCount.toLocaleString()} chars</span>
+            <span>·</span>
+            <span>{readingTime} min read</span>
           </div>
-          <div>
-            Markdown Mode
+          <div className="text-[11px] opacity-75">
+            Markdown Workspace
           </div>
         </div>
 
-        {/* Floating Toolbar Toggle */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center bg-theme-sidebar/90 backdrop-blur-md border border-theme-border rounded-full shadow-2xl z-50 print:hidden">
+        {/* Floating Action Bar (FAB) for Canvas Toggle */}
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center glass-panel rounded-full p-1.5 shadow-2xl z-50 print:hidden glass-glow">
           <button 
+            type="button"
             onClick={() => setDrawMode(!drawMode)} 
-            className={`p-3 rounded-full transition-colors flex items-center gap-2 font-medium ${drawMode ? 'bg-theme-accent text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-            title={drawMode ? "Close Drawing Mode" : "Open Drawing Mode"}
+            className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 text-xs font-semibold ${
+              drawMode 
+                ? 'bg-theme-accent text-gray-950 glass-glow' 
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
+            }`}
+            title={drawMode ? "Close Canvas View" : "Open Canvas View"}
           >
-            {drawMode ? <X size={20} /> : <PenTool size={20} />}
-            {drawMode && <span className="pr-2">Close Canvas</span>}
+            {drawMode ? <X size={16} /> : <PenTool size={16} />}
+            <span>{drawMode ? 'Close Canvas' : 'DrawPad Canvas'}</span>
           </button>
         </div>
       </div>

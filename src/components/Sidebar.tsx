@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Note } from '../types';
-import { Plus, Search, FileText, Settings as SettingsIcon, Trash2, Tag, X } from 'lucide-react';
+import { Plus, Search, FileText, Settings as SettingsIcon, Trash2, Tag, X, Sparkles } from 'lucide-react';
 
 export interface TagWithCount {
   id: string;
@@ -78,49 +78,84 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote, onDel
   });
 
   return (
-    <div className="w-64 bg-theme-sidebar border-r border-theme-border flex flex-col h-screen text-gray-200 print:hidden">
-      <div className="p-4 flex items-center justify-between border-b border-theme-border">
-        <h1 className="font-bold text-lg flex items-center gap-2">
-          <FileText className="w-5 h-5 text-theme-accent" />
-          KnowledgeDump
-        </h1>
-        <button onClick={onCreateNote} className="p-1 hover:bg-theme-bg rounded text-gray-400 hover:text-white" title="New Note">
-          <Plus className="w-5 h-5" />
+    <div className="w-72 bg-theme-sidebar border-r border-theme-border flex flex-col h-screen text-theme-text select-none print:hidden backdrop-blur-xl relative z-20">
+      {/* Brand Header */}
+      <div className="p-4 flex items-center justify-between border-b border-theme-border/60">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-theme-accent/15 border border-theme-accent/40 flex items-center justify-center text-theme-accent glass-glow">
+            <Sparkles className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <h1 className="font-bold text-base tracking-tight text-theme-text flex items-center gap-1.5">
+              KnowledgeDump
+            </h1>
+            <p className="text-[10px] text-theme-text-muted font-mono tracking-wider uppercase">Local Knowledge</p>
+          </div>
+        </div>
+        <button
+          onClick={onCreateNote}
+          className="p-2 bg-theme-accent/10 hover:bg-theme-accent/25 text-theme-accent border border-theme-accent/30 rounded-lg transition-all hover:scale-105 active:scale-95"
+          title="Create New Note"
+          type="button"
+        >
+          <Plus className="w-4 h-4" />
         </button>
       </div>
       
-      <div className="p-3 space-y-2 border-b border-theme-border">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-500" />
+      {/* Search & Filter Controls */}
+      <div className="p-3 space-y-2.5 border-b border-theme-border/50 bg-theme-sidebar/50">
+        <div className="relative flex items-center">
+          <Search className="w-4 h-4 absolute left-3 text-theme-text-muted pointer-events-none" />
           <input 
             type="text" 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search notes..." 
-            className="w-full bg-theme-input text-sm rounded-md py-2 pl-9 pr-3 outline-none focus:ring-1 focus:ring-theme-accent border border-theme-border placeholder-gray-500"
+            aria-label="Search notes"
+            className="w-full glass-input text-xs rounded-lg py-2 pl-9 pr-8 outline-none text-theme-text placeholder:text-theme-text-muted font-sans"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 text-theme-text-muted hover:text-theme-text p-0.5"
+              type="button"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {allTags.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between text-xs text-gray-400 px-1 py-1">
+        {(allTags.length > 0 || selectedTagIds.length > 0) && (
+          <div className="pt-1">
+            <div className="flex items-center justify-between text-[11px] font-medium text-theme-text-muted px-1 py-1">
               <button
+                type="button"
+                aria-expanded={showTagFilter || selectedTagIds.length > 0}
+                aria-controls="tag-filter-list"
                 onClick={() => setShowTagFilter(!showTagFilter)}
-                className="flex items-center gap-1 hover:text-gray-200 transition-colors"
+                className="flex items-center gap-1.5 text-theme-text-muted hover:text-theme-accent transition-colors"
               >
-                <Tag size={12} />
-                <span>Tags {selectedTagIds.length > 0 && `(${selectedTagIds.length})`}</span>
+                <Tag size={12} className="text-theme-accent" />
+                <span>Concept Tags {selectedTagIds.length > 0 && `(${selectedTagIds.length})`}</span>
               </button>
               
               {selectedTagIds.length > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
+                    type="button"
                     onClick={() => setFilterMode(filterMode === 'and' ? 'or' : 'and')}
-                    className="px-1.5 py-0.5 rounded bg-theme-input hover:bg-theme-border text-[10px] font-semibold text-theme-accent uppercase"
+                    className="px-1.5 py-0.5 rounded bg-theme-accent/15 border border-theme-accent/30 text-[10px] font-mono font-semibold text-theme-accent uppercase hover:bg-theme-accent/30 transition-colors"
+                    title="Toggle Filter Match Logic (AND: notes must have all tags, OR: any tag)"
                   >
                     {filterMode}
                   </button>
-                  <button onClick={clearTagFilters} className="text-gray-400 hover:text-red-400" title="Clear Tag Filters">
+                  <button
+                    type="button"
+                    onClick={clearTagFilters}
+                    className="text-theme-text-muted hover:text-red-400 p-0.5"
+                    title="Clear Tag Filters"
+                  >
                     <X size={12} />
                   </button>
                 </div>
@@ -128,21 +163,23 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote, onDel
             </div>
 
             {(showTagFilter || selectedTagIds.length > 0) && (
-              <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto pt-1">
+              <div id="tag-filter-list" className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pt-1.5">
                 {allTags.map(tag => {
                   const isSelected = selectedTagIds.includes(tag.id);
                   return (
                     <button
                       key={tag.id}
+                      type="button"
+                      aria-pressed={isSelected}
                       onClick={() => toggleTag(tag.id)}
-                      className={`text-[11px] px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 ${
+                      className={`text-[11px] px-2.5 py-1 rounded-md border transition-all flex items-center gap-1.5 font-mono ${
                         isSelected
-                          ? 'bg-theme-accent text-white border-theme-accent'
-                          : 'bg-theme-input/50 text-gray-400 border-theme-border hover:border-gray-500'
+                          ? 'bg-theme-accent text-gray-950 font-bold border-theme-accent glass-glow'
+                          : 'bg-theme-input/40 text-theme-text-muted border-theme-border hover:border-theme-accent/40 hover:text-theme-text'
                       }`}
                     >
                       <span>#{tag.name}</span>
-                      <span className="opacity-60 text-[9px]">({tag.count})</span>
+                      <span className="opacity-70 text-[10px]">({tag.count})</span>
                     </button>
                   );
                 })}
@@ -152,40 +189,73 @@ export function Sidebar({ notes, activeNoteId, onSelectNote, onCreateNote, onDel
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {displayedNotes.map(note => (
-          <div 
-            key={note.id}
-            onClick={() => onSelectNote(note.id)}
-            className={`group px-4 py-3 cursor-pointer border-b border-theme-border/50 hover:bg-theme-bg transition-colors flex items-center justify-between ${activeNoteId === note.id ? 'bg-theme-bg border-l-2 border-l-theme-accent' : 'border-l-2 border-l-transparent'}`}
-          >
-            <div className="flex-1 min-w-0 mr-2">
-              <div className="font-medium text-sm truncate">{note.title || 'Untitled Note'}</div>
-              <div className="text-xs text-gray-500 mt-1 truncate">{note.content.substring(0, 50) || 'No content...'}</div>
+      {/* Notes List */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {displayedNotes.map(note => {
+          const isActive = activeNoteId === note.id;
+          return (
+            <div key={note.id} className="group relative flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => onSelectNote(note.id)}
+                aria-current={isActive ? 'true' : undefined}
+                className={`w-full text-left relative px-3 py-2.5 rounded-lg border transition-all flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-accent ${
+                  isActive 
+                    ? 'bg-theme-accent/10 border-theme-accent/40 text-theme-text glass-glow' 
+                    : 'bg-transparent border-transparent hover:bg-theme-input/40 hover:border-theme-border text-theme-text-muted'
+                }`}
+              >
+                {/* Active Item Vertical Glow Line */}
+                {isActive && (
+                  <div className="absolute left-0 top-2 bottom-2 w-1 bg-theme-accent rounded-r-full" />
+                )}
+                
+                <div className="flex-1 min-w-0 pr-8 pl-1">
+                  <div className="font-medium text-xs truncate text-theme-text flex items-center gap-1.5">
+                    <FileText className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-theme-accent' : 'text-theme-text-muted'}`} />
+                    <span className="truncate">{note.title || 'Untitled Note'}</span>
+                  </div>
+                  <div className="text-[11px] text-theme-text-muted mt-1 truncate pl-5 font-sans">
+                    {note.content.substring(0, 45) || 'Empty note...'}
+                  </div>
+                </div>
+              </button>
+
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
+                className="absolute right-2 p-1.5 rounded-md text-theme-text-muted hover:text-red-400 hover:bg-red-500/15 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-all shrink-0 z-10"
+                title="Delete Note"
+                aria-label={`Delete note ${note.title || 'Untitled Note'}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
-              className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all shrink-0"
-              title="Delete Note"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
+          );
+        })}
+
         {displayedNotes.length === 0 && (
-          <div className="p-4 text-center text-gray-500 text-sm">
-            {selectedTagIds.length > 0 ? 'No notes match tag filters.' : 'No notes found.'}
+          <div className="p-6 text-center text-theme-text-muted text-xs font-sans space-y-1">
+            <p className="font-medium">{selectedTagIds.length > 0 ? 'No notes match tag filters.' : 'No notes captured yet.'}</p>
+            <p className="text-[11px] opacity-70">Click + to start writing.</p>
           </div>
         )}
       </div>
 
-      <div className="p-4 border-t border-theme-border">
+      {/* Footer Navigation */}
+      <div className="p-2.5 border-t border-theme-border/60 bg-theme-sidebar/80 flex items-center gap-2">
         <button 
+          type="button"
           onClick={() => onSelectNote('settings')} 
-          className={`flex items-center gap-2 text-sm text-gray-400 hover:text-gray-100 transition-colors w-full p-2 rounded ${activeNoteId === 'settings' ? 'bg-theme-bg text-white' : ''}`}
+          aria-current={activeNoteId === 'settings' ? 'page' : undefined}
+          className={`flex-1 flex items-center justify-center gap-2 text-xs font-medium py-2 px-3 rounded-lg border transition-all ${
+            activeNoteId === 'settings' 
+              ? 'bg-theme-accent/15 border-theme-accent/40 text-theme-accent' 
+              : 'bg-theme-input/40 border-theme-border text-theme-text-muted hover:text-theme-text hover:border-theme-border'
+          }`}
         >
-          <SettingsIcon className="w-4 h-4" />
-          Settings
+          <SettingsIcon className="w-3.5 h-3.5" />
+          <span>Settings</span>
         </button>
       </div>
     </div>
